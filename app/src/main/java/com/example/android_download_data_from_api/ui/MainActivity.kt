@@ -3,7 +3,10 @@ package com.example.android_download_data_from_api.ui
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.common.adapters.UserListAdapter
 import com.example.android_download_data_from_api.databinding.ActivityMainBinding
 import com.example.android_download_data_from_api.models.Photo
@@ -34,5 +37,25 @@ class MainActivity : AppCompatActivity() {
         for (i in 1..30) {
             userList.add(Photo("Name + $i"))
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        val inflater = menuInflater
+        inflater.inflate(R.menu.search_menu, menu)
+
+        val searchItem = menu.findItem(R.id.actionSearch)
+        val searchView = searchItem.actionView as? SearchView
+        searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
+            android.widget.SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(newText: String): Boolean {
+//                filter(newText)
+                return false
+            }
+        })
+        return true
     }
 }
