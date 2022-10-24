@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.models.Photo
+import com.example.android_download_data_from_api.models.User
 import com.example.android_download_data_from_api.ui.fragments.UserImagesFragment
 
 class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserListAdapter.ViewHolder>() {
@@ -37,7 +38,7 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
 
         println(list[position])
         holder.name.text = dataPosition.photographer
-        holder.button.setOnClickListener { v ->
+        holder.name.setOnClickListener { v ->
             // open new fragment
             val activity = v!!.context as AppCompatActivity
             val userInfoFragment = UserImagesFragment()
@@ -46,6 +47,9 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
                 .add(R.id.recListConstraintLayout, userInfoFragment)
                 .addToBackStack(null)
                 .commit()
+        }
+        holder.button.setOnClickListener { v ->
+            // download user images
         }
         Log.d("UserListAdapter", "Holder Name: ${holder.name.text}")
         Log.d("UserListAdapter", "List[Position] Name: ${dataPosition.photographer}")

@@ -22,6 +22,7 @@ data class Photo (
 //    @SerializedName("avg_color")
 //    val avgColor: String,
 //    val src: Src,
+//    val alt: String,
 )
 
 data class Src (
