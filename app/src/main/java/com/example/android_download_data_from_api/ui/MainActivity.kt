@@ -46,127 +46,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-//        val fetchDataTaskResolver =
-//            object : FetchDataTaskResolver<String, Boolean, MutableList<Photo>>() {
-//                override fun doInBackground(vararg many: String): MutableList<Photo> {
-//                    Log.d(
-//                        "***doInBackground: ",
-//                        "method is called,  ${Thread.currentThread().name}"
-//                    )
-//
-//                    val retrofitService = Common.retrofitService
-//                    Log.d("***doInBackground: ", "retrofitService init")
-//                    val response = retrofitService.getUsers("photos/2014422").execute()
-//                    try {
-//                        userList.addAll(response.body()!!)
-//                        Log.e("RETROFIT RESUL: ", userList.toString())
-//
-//                        val handler = Handler(Looper.getMainLooper())
-//                        handler.post {
-//                            setupAdapter()
-//                        }
-//                    } catch (e: Error) {
-//                        Log.e("****RETROFIT ERROR: ", e.toString())
-//                    }
-//
-////                val response = retrofitService.getUsers("photos/2014422").enqueue(object : Callback<MutableList<Photo>> {
-////                    override fun onResponse(call: Call<MutableList<Photo>>, response: Response<MutableList<Photo>>) {
-////                        if (response.isSuccessful) {
-////                            try {
-////                                userList = response.body()!!
-////                                Log.e("RETROFIT RESUL: ", userList.toString())
-////
-////                                val handler = Handler(Looper.getMainLooper())
-////                                handler.post {
-////                                    setupAdapter()
-////                                }
-////                            } catch (e: Error) {
-////                                Log.e("****onResponse", e.toString())
-////                            }
-////                        }
-////                        Log.d("****onResponse()", userList.toString())
-////                    }
-////
-////                    override fun onFailure(call: Call<MutableList<Photo>>, t: Throwable) {
-////                        Log.e("****onFailure", t.toString())
-////                    }
-////                })
-//                    Log.d("***doInBackground: ", "response: ,  $response")
-//                    return userList
-//                }
-//
-//                override fun onPostExecute(data: MutableList<Photo>) {
-//                    userList.addAll(data)
-//                    setupAdapter()
-//                    Log.d(
-//                        "**** onPost Execute = ",
-//                        ", Current Thread: ${Thread.currentThread().name}, res=" + data
-//                    )
-//                }
-//
-//                override fun onPreExecute() {
-//                    setupAdapter()
-//                    Log.d(
-//                        "**** onPre Execute = ",
-//                        "onPre Execute, Current Thread: ${Thread.currentThread().name}"
-//                    )
-//                }
-//
-//                @SuppressLint("LongLogTag")
-//                override fun onProgressUpdate(progress: Boolean) {
-//                    progress_two.visibility(progress)
-//                    Log.d(
-//                        "**** onProgressUpdate = ",
-//                        ", Current Thread: ${Thread.currentThread().name}, " + progress
-//                    )
-//                }
-//            }
-//        fetchDataTaskResolver.execute()
-
         setupAdapter()
-//        getData()
     }
-
-//    private fun getData() {
-//        task = Runnable {
-//            progress_two.visibility = View.VISIBLE
-//            val retrofitService = Common.retrofitService
-//            Log.d("***doInBackground: ", "retrofitService init")
-//            retrofitService.getUsers("people")
-//                .enqueue(object : Callback<MutableList<Photo>> {
-//                    @SuppressLint("NotifyDataSetChanged")
-//                    override fun onResponse(
-//                        call: Call<MutableList<Photo>>, response: Response<MutableList<Photo>>
-//                    ) {
-//                        if (response.isSuccessful) {
-//                            Log.e("RESPONSE: ", "response.isSuccessful")
-//                            try {
-//                                userList.addAll(response.body()!! as Collection<Photo>)
-//                                Log.e("USERLIST RESUL:", userList.toString())
-//                                adapter.notifyDataSetChanged()
-//                                progress_two.visibility = GONE
-//                                Log.e("RETROFIT RESUL: ", userList.toString())
-//
-////                            val handler = Handler(Looper.getMainLooper())
-////                            handler.post {
-////                                setupAdapter()
-////                            }
-//                            } catch (e: Error) {
-//                                Log.e("****onResponse", e.toString())
-//                            }
-//                        }
-//                        Log.d("****onResponse()", userList.toString())
-//                    }
-//
-//                    override fun onFailure(call: Call<MutableList<Photo>>, t: Throwable) {
-//                        progress_two.visibility = GONE
-//                        Log.e("****onFailure", t.toString())
-//                    }
-//                })
-//        }
-//        thread = Thread(task)
-//        thread.start()
-//    }
 
     private fun setupAdapter() {
         adapter = UserListAdapter(userList)
@@ -194,7 +75,7 @@ class MainActivity : AppCompatActivity() {
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
             android.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
-                if(query != null) {
+                if (query != null) {
 
                     progress_two.visibility = View.VISIBLE
                     val retrofitService = Common.retrofitService
@@ -212,10 +93,6 @@ class MainActivity : AppCompatActivity() {
                                         progress_two.visibility = GONE
                                         Log.e("RETROFIT RESUL: ", userList.toString())
 
-//                            val handler = Handler(Looper.getMainLooper())
-//                            handler.post {
-//                                setupAdapter()
-//                            }
                                     } catch (e: Error) {
                                         Log.e("****onResponse", e.toString())
                                     }
