@@ -20,7 +20,7 @@ data class Photo (
 //    @SerializedName("photographer_id")
 //    val photographerID: Long,
 //    @SerializedName("avg_color")
-//    val avgColor: String,
+    val avgColor: String,
 //    val src: Src,
 //    val alt: String,
 )

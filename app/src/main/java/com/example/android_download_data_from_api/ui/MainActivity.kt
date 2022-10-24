@@ -10,21 +10,26 @@ import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.View
+import android.view.View.GONE
 import android.widget.ProgressBar
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.asyncTasks.FetchDataTaskResolver
 import com.example.android_download_data_from_api.common.adapters.Common
+import com.example.android_download_data_from_api.common.adapters.Common.retrofitService
 import com.example.android_download_data_from_api.common.adapters.UserListAdapter
 import com.example.android_download_data_from_api.databinding.ActivityMainBinding
 import com.example.android_download_data_from_api.models.Photo
 import com.example.android_download_data_from_api.models.User
 import com.example.android_download_data_from_api.services.DownloadService
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.InputStream
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
@@ -41,83 +46,133 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val fetchDataTaskResolver = object : FetchDataTaskResolver<String, Boolean, MutableList<Photo>>() {
-            override fun doInBackground(vararg many: String): MutableList<Photo> {
-                Log.d("***doInBackground: ", "method is called,  ${Thread.currentThread().name}")
-
-                val retrofitService = Common.retrofitService
-                Log.d("***doInBackground: ", "retrofitService init")
-
-                val response = retrofitService.getUsers("search?query=nature&per_page=10").enqueue(object : Callback<MutableList<Photo>> {
-                    override fun onResponse(call: Call<MutableList<Photo>>, response: Response<MutableList<Photo>>) {
-                        if (response.isSuccessful) {
-                            userList = response.body()!!
-                            Log.e("RETROFIT RESUL: ", userList.toString())
-
-                            val handler = Handler(Looper.getMainLooper())
-                            handler.post {
-                                setupAdapter()
-                            }
-                        }
-                        Log.d("****onResponse()", userList.toString())
-                    }
-
-                    override fun onFailure(call: Call<MutableList<Photo>>, t: Throwable) {
-                        Log.e("RETROFIT RESULT ERROR: ", "ERROR RESPONCE")
-                    }
-                })
-                Log.d("***doInBackground: ", "response: ,  $response")
-
-//                val retrofitService = Common.retrofitService
-//                Log.d("***doInBackground: ", "retrofitService init")
-//                val response = retrofitService.getUsers("5").execute()
-//                Log.d("***doInBackground: ", "response: ,  $response")
+//        val fetchDataTaskResolver =
+//            object : FetchDataTaskResolver<String, Boolean, MutableList<Photo>>() {
+//                override fun doInBackground(vararg many: String): MutableList<Photo> {
+//                    Log.d(
+//                        "***doInBackground: ",
+//                        "method is called,  ${Thread.currentThread().name}"
+//                    )
 //
-//                try {
-//                    userList.addAll(response.body()!!)
-//                    Log.e("RETROFIT RESUL: ", userList.toString())
+//                    val retrofitService = Common.retrofitService
+//                    Log.d("***doInBackground: ", "retrofitService init")
+//                    val response = retrofitService.getUsers("photos/2014422").execute()
+//                    try {
+//                        userList.addAll(response.body()!!)
+//                        Log.e("RETROFIT RESUL: ", userList.toString())
 //
-//                    val handler = Handler(Looper.getMainLooper())
-//                    handler.post {
-//                        setupAdapter()
+//                        val handler = Handler(Looper.getMainLooper())
+//                        handler.post {
+//                            setupAdapter()
+//                        }
+//                    } catch (e: Error) {
+//                        Log.e("****RETROFIT ERROR: ", e.toString())
 //                    }
-//                } catch (e: Error) {
-//                    Log.e("RETROFIT RESULT ERROR: ", e.toString())
+//
+////                val response = retrofitService.getUsers("photos/2014422").enqueue(object : Callback<MutableList<Photo>> {
+////                    override fun onResponse(call: Call<MutableList<Photo>>, response: Response<MutableList<Photo>>) {
+////                        if (response.isSuccessful) {
+////                            try {
+////                                userList = response.body()!!
+////                                Log.e("RETROFIT RESUL: ", userList.toString())
+////
+////                                val handler = Handler(Looper.getMainLooper())
+////                                handler.post {
+////                                    setupAdapter()
+////                                }
+////                            } catch (e: Error) {
+////                                Log.e("****onResponse", e.toString())
+////                            }
+////                        }
+////                        Log.d("****onResponse()", userList.toString())
+////                    }
+////
+////                    override fun onFailure(call: Call<MutableList<Photo>>, t: Throwable) {
+////                        Log.e("****onFailure", t.toString())
+////                    }
+////                })
+//                    Log.d("***doInBackground: ", "response: ,  $response")
+//                    return userList
 //                }
-                return userList
-            }
+//
+//                override fun onPostExecute(data: MutableList<Photo>) {
+//                    userList.addAll(data)
+//                    setupAdapter()
+//                    Log.d(
+//                        "**** onPost Execute = ",
+//                        ", Current Thread: ${Thread.currentThread().name}, res=" + data
+//                    )
+//                }
+//
+//                override fun onPreExecute() {
+//                    setupAdapter()
+//                    Log.d(
+//                        "**** onPre Execute = ",
+//                        "onPre Execute, Current Thread: ${Thread.currentThread().name}"
+//                    )
+//                }
+//
+//                @SuppressLint("LongLogTag")
+//                override fun onProgressUpdate(progress: Boolean) {
+//                    progress_two.visibility(progress)
+//                    Log.d(
+//                        "**** onProgressUpdate = ",
+//                        ", Current Thread: ${Thread.currentThread().name}, " + progress
+//                    )
+//                }
+//            }
+//        fetchDataTaskResolver.execute()
 
-            override fun onPostExecute(data: MutableList<Photo>) {
-                setupAdapter()
-                Log.d("**** onPost Execute = ", ", Current Thread: ${Thread.currentThread().name}, res=" + data)
-            }
-
-            override fun onPreExecute() {
-                setupAdapter()
-                Log.d("**** onPre Execute = ", "onPre Execute, Current Thread: ${Thread.currentThread().name}")
-            }
-
-            @SuppressLint("LongLogTag")
-            override fun onProgressUpdate(progress: Boolean) {
-                progress_two.visibility(progress)
-                Log.d("**** onProgressUpdate = ", ", Current Thread: ${Thread.currentThread().name}, " + progress)
-            }
-        }
-        fetchDataTaskResolver.execute()
+        setupAdapter()
+//        getData()
     }
+
+//    private fun getData() {
+//        task = Runnable {
+//            progress_two.visibility = View.VISIBLE
+//            val retrofitService = Common.retrofitService
+//            Log.d("***doInBackground: ", "retrofitService init")
+//            retrofitService.getUsers("people")
+//                .enqueue(object : Callback<MutableList<Photo>> {
+//                    @SuppressLint("NotifyDataSetChanged")
+//                    override fun onResponse(
+//                        call: Call<MutableList<Photo>>, response: Response<MutableList<Photo>>
+//                    ) {
+//                        if (response.isSuccessful) {
+//                            Log.e("RESPONSE: ", "response.isSuccessful")
+//                            try {
+//                                userList.addAll(response.body()!! as Collection<Photo>)
+//                                Log.e("USERLIST RESUL:", userList.toString())
+//                                adapter.notifyDataSetChanged()
+//                                progress_two.visibility = GONE
+//                                Log.e("RETROFIT RESUL: ", userList.toString())
+//
+////                            val handler = Handler(Looper.getMainLooper())
+////                            handler.post {
+////                                setupAdapter()
+////                            }
+//                            } catch (e: Error) {
+//                                Log.e("****onResponse", e.toString())
+//                            }
+//                        }
+//                        Log.d("****onResponse()", userList.toString())
+//                    }
+//
+//                    override fun onFailure(call: Call<MutableList<Photo>>, t: Throwable) {
+//                        progress_two.visibility = GONE
+//                        Log.e("****onFailure", t.toString())
+//                    }
+//                })
+//        }
+//        thread = Thread(task)
+//        thread.start()
+//    }
 
     private fun setupAdapter() {
         adapter = UserListAdapter(userList)
         binding.recycleView.layoutManager = LinearLayoutManager(this@MainActivity)
         binding.recycleView.adapter = adapter
         binding.recycleView.setItemViewCacheSize(userList.size)
-    }
-
-    private fun setupUserList() {
-        for (i in 1..30) {
-            Thread.sleep(1000)
-            userList.add(Photo("Name + $i"))
-        }
     }
 
     //visibility of progress bar
@@ -135,10 +190,46 @@ class MainActivity : AppCompatActivity() {
 
         val searchItem = menu.findItem(R.id.actionSearch)
         val searchView = searchItem.actionView as? SearchView
+
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
             android.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
-                return false
+                if(query != null) {
+
+                    progress_two.visibility = View.VISIBLE
+                    val retrofitService = Common.retrofitService
+                    Log.d("***doInBackground: ", "retrofitService init")
+                    retrofitService.getUsers(query)
+                        .enqueue(object : Callback<User> {
+                            @SuppressLint("NotifyDataSetChanged")
+                            override fun onResponse(call: Call<User>, response: Response<User>) {
+                                if (response.isSuccessful) {
+                                    Log.e("RESPONSE: ", "response.isSuccessful")
+                                    try {
+                                        userList.addAll(response.body()!!.photos)
+                                        Log.e("USERLIST RESUL:", userList.toString())
+                                        adapter.notifyDataSetChanged()
+                                        progress_two.visibility = GONE
+                                        Log.e("RETROFIT RESUL: ", userList.toString())
+
+//                            val handler = Handler(Looper.getMainLooper())
+//                            handler.post {
+//                                setupAdapter()
+//                            }
+                                    } catch (e: Error) {
+                                        Log.e("****onResponse", e.toString())
+                                    }
+                                }
+                                Log.d("****onResponse()", userList.toString())
+                            }
+
+                            override fun onFailure(call: Call<User>, t: Throwable) {
+                                progress_two.visibility = GONE
+                                Log.e("****onFailure", t.toString())
+                            }
+                        })
+                }
+                return true
             }
 
             override fun onQueryTextChange(newText: String): Boolean {
@@ -171,7 +262,6 @@ class MainActivity : AppCompatActivity() {
         thread.interrupt()
         Log.e("MainActivity", "${Thread.currentThread().name}, ${Thread.currentThread().state}")
         Log.e("MainActivity", "${thread.name}, ${thread.state}")
-        stopService(Intent(this@MainActivity, DownloadService::class.java))
         super.onDestroy()
     }
 

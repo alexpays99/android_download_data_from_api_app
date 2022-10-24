@@ -1,5 +1,6 @@
 package com.example.android_download_data_from_api.common.adapters
 
+import android.graphics.Color
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -38,6 +39,7 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
 
         println(list[position])
         holder.name.text = dataPosition.photographer
+//        holder.name.setTextColor(Color.parseColor(dataPosition.avgColor))
         holder.name.setOnClickListener { v ->
             // open new fragment
             val activity = v!!.context as AppCompatActivity
