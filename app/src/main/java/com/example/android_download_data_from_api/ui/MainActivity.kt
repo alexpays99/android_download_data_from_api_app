@@ -15,7 +15,6 @@ import android.widget.ProgressBar
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
-import com.example.android_download_data_from_api.asyncTasks.FetchDataTaskResolver
 import com.example.android_download_data_from_api.common.adapters.Common
 import com.example.android_download_data_from_api.common.adapters.Common.retrofitService
 import com.example.android_download_data_from_api.common.adapters.UserListAdapter
@@ -30,6 +29,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.InputStream
+import java.lang.Thread.currentThread
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
@@ -56,15 +56,6 @@ class MainActivity : AppCompatActivity() {
         binding.recycleView.setItemViewCacheSize(userList.size)
     }
 
-    //visibility of progress bar
-    fun ProgressBar.visibility(progress: Boolean) {
-        if (progress) {
-            progress_two.visibility = View.VISIBLE
-        } else {
-            progress_two.visibility = View.GONE
-        }
-    }
-
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val inflater = menuInflater
         inflater.inflate(R.menu.search_menu, menu)
@@ -75,37 +66,40 @@ class MainActivity : AppCompatActivity() {
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
             android.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
-                if (query != null) {
+                progress_two.visibility = View.VISIBLE
+                val retrofitService = Common.retrofitService
+                Log.d("***doInBackground: ", "retrofitService init")
+                retrofitService.getUsers(query)
+                    .enqueue(object : Callback<User> {
+                        @SuppressLint("NotifyDataSetChanged")
+                        override fun onResponse(
+                            call: Call<User>,
+                            response: Response<User>
+                        ) {
+                            if (response.isSuccessful) {
+                                Log.e("RESPONSE: ", "response.isSuccessful")
+                                try {
+                                    userList.addAll(response.body()!!.photos)
+                                    Log.e("USERLIST RESUL:", userList.toString())
+                                    adapter.notifyDataSetChanged()
+                                    runOnUiThread { progress_two.visibility = GONE }
+                                    Log.e("RETROFIT RESUL: ", userList.toString())
 
-                    progress_two.visibility = View.VISIBLE
-                    val retrofitService = Common.retrofitService
-                    Log.d("***doInBackground: ", "retrofitService init")
-                    retrofitService.getUsers(query)
-                        .enqueue(object : Callback<User> {
-                            @SuppressLint("NotifyDataSetChanged")
-                            override fun onResponse(call: Call<User>, response: Response<User>) {
-                                if (response.isSuccessful) {
-                                    Log.e("RESPONSE: ", "response.isSuccessful")
-                                    try {
-                                        userList.addAll(response.body()!!.photos)
-                                        Log.e("USERLIST RESUL:", userList.toString())
-                                        adapter.notifyDataSetChanged()
-                                        progress_two.visibility = GONE
-                                        Log.e("RETROFIT RESUL: ", userList.toString())
-
-                                    } catch (e: Error) {
-                                        Log.e("****onResponse", e.toString())
-                                    }
+                                } catch (e: Error) {
+                                    Log.e("****onResponse", e.toString())
                                 }
-                                Log.d("****onResponse()", userList.toString())
+                                Log.d(
+                                    "****onResponse()",
+                                    currentThread().name + ", " + userList.toString()
+                                )
                             }
+                        }
 
-                            override fun onFailure(call: Call<User>, t: Throwable) {
-                                progress_two.visibility = GONE
-                                Log.e("****onFailure", t.toString())
-                            }
-                        })
-                }
+                        override fun onFailure(call: Call<User>, t: Throwable) {
+                            progress_two.visibility = GONE
+                            Log.e("****onFailure", t.toString())
+                        }
+                    })
                 return true
             }
 
