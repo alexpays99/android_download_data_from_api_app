@@ -11,30 +11,29 @@ import android.util.Log
 import android.view.Menu
 import android.view.View
 import android.view.View.GONE
-import android.widget.ProgressBar
+import android.widget.GridView
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.common.adapters.Common
-import com.example.android_download_data_from_api.common.adapters.Common.retrofitService
+import com.example.android_download_data_from_api.common.adapters.GridAdapter
+import com.example.android_download_data_from_api.common.adapters.OnBindInterface
 import com.example.android_download_data_from_api.common.adapters.UserListAdapter
 import com.example.android_download_data_from_api.databinding.ActivityMainBinding
 import com.example.android_download_data_from_api.models.Photo
 import com.example.android_download_data_from_api.models.User
 import com.example.android_download_data_from_api.services.DownloadService
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import com.example.android_download_data_from_api.ui.fragments.UserImagesFragment
 import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.InputStream
 import java.lang.Thread.currentThread
-import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     private var userList = mutableListOf<Photo>()
-    private lateinit var adapter: UserListAdapter
+    private lateinit var recyclerAdapter: UserListAdapter
+    private lateinit var gridAdapter: GridAdapter
     private lateinit var binding: ActivityMainBinding
     private var downloadService: DownloadService? = null
     private lateinit var thread: Thread
@@ -46,14 +45,27 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupAdapter()
+        setupRecyclerAdapter()
     }
 
-    private fun setupAdapter() {
-        adapter = UserListAdapter(userList)
+    private fun setupRecyclerAdapter() {
+        recyclerAdapter = UserListAdapter(userList)
         binding.recycleView.layoutManager = LinearLayoutManager(this@MainActivity)
-        binding.recycleView.adapter = adapter
+        binding.recycleView.adapter = recyclerAdapter
         binding.recycleView.setItemViewCacheSize(userList.size)
+        recyclerAdapter.bind(object : OnBindInterface {
+            override fun onBinding(photo: Photo) {
+                val bundle = Bundle()
+                val userImagesFragment = UserImagesFragment()
+                bundle.putString("message", photo.photographer.toString())
+                userImagesFragment.arguments = bundle
+                supportFragmentManager
+                .beginTransaction()
+                .replace(R.id.recListConstraintLayout, userImagesFragment)
+                .addToBackStack(null)
+                .commit()
+            }
+        })
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -81,7 +93,7 @@ class MainActivity : AppCompatActivity() {
                                 try {
                                     userList.addAll(response.body()!!.photos)
                                     Log.e("USERLIST RESUL:", userList.toString())
-                                    adapter.notifyDataSetChanged()
+                                    recyclerAdapter.notifyDataSetChanged()
                                     runOnUiThread { progress_two.visibility = GONE }
                                     Log.e("RETROFIT RESUL: ", userList.toString())
 
@@ -140,7 +152,7 @@ class MainActivity : AppCompatActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             downloadService = (service as DownloadService.CustomBinder).getService()
             if (downloadService != null) {
-                setupAdapter()
+                setupRecyclerAdapter()
                 isRunning = true
                 println("serviceConnection has been called")
             }
