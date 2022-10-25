@@ -7,24 +7,33 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.models.Photo
-import com.example.android_download_data_from_api.models.User
-import com.example.android_download_data_from_api.ui.fragments.UserImagesFragment
+
+interface OnBindInterface {
+    fun onBinding(photo: Photo)
+}
 
 class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserListAdapter.ViewHolder>() {
+    private lateinit var cardViewCallback: OnBindInterface
 
     inner class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
         var name: TextView
         var button: Button
+        var cardView: CardView
 
         init {
             name = itemView.findViewById(R.id.userName)
             button = itemView.findViewById(R.id.downloadButton)
+            cardView = itemView.findViewById(R.id.cardView)
             Log.d("UserListAdapter", "Init name and button")
         }
+    }
+
+    fun bind(callback: OnBindInterface) {
+        cardViewCallback = callback
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -40,17 +49,10 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
         println(list[position])
         holder.name.text = dataPosition.photographer
         holder.name.setTextColor(Color.parseColor(dataPosition.avgColor))
-        holder.name.setOnClickListener { v ->
-            // open new fragment
-            val activity = v!!.context as AppCompatActivity
-            val userInfoFragment = UserImagesFragment()
-            activity.supportFragmentManager
-                .beginTransaction()
-                .add(R.id.recListConstraintLayout, userInfoFragment)
-                .addToBackStack(null)
-                .commit()
+        holder.cardView.setOnClickListener {
+            cardViewCallback.onBinding(list[position])
         }
-        holder.button.setOnClickListener { v ->
+        holder.button.setOnClickListener {
             // download user images
         }
         Log.d("UserListAdapter", "Holder Name: ${holder.name.text}")
