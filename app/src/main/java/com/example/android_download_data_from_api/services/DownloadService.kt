@@ -5,7 +5,9 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import com.example.android_download_data_from_api.BuildConfig
+import com.example.android_download_data_from_api.common.adapters.OnBindInterface
 import com.example.android_download_data_from_api.interfaces.RetrofitApiCallInterface
+import com.example.android_download_data_from_api.models.Photo
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -30,7 +32,7 @@ class DownloadService: Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         println("onStartCommand() method is called")
-        return START_NOT_STICKY
+        return START_STICKY
         //            return super.onStartCommand(intent, flags, startId)
     }
 

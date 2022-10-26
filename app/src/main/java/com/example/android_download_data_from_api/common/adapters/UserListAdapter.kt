@@ -16,8 +16,13 @@ interface OnBindInterface {
     fun onBinding(photo: Photo)
 }
 
+interface OnDownladImageInterface {
+    fun onDownladImage(photo: Photo)
+}
+
 class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserListAdapter.ViewHolder>() {
     private lateinit var cardViewCallback: OnBindInterface
+    private lateinit var downloadImg: OnDownladImageInterface
 
     inner class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
         var name: TextView
@@ -32,8 +37,12 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
         }
     }
 
-    fun bind(callback: OnBindInterface) {
+    fun bindCallback(callback: OnBindInterface) {
         cardViewCallback = callback
+    }
+
+    fun downloadImgCallback(callback: OnDownladImageInterface) {
+        downloadImg = callback
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -54,6 +63,7 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
         }
         holder.button.setOnClickListener {
             // download user images
+            downloadImg.onDownladImage(list[position])
         }
         Log.d("UserListAdapter", "Holder Name: ${holder.name.text}")
         Log.d("UserListAdapter", "List[Position] Name: ${dataPosition.photographer}")

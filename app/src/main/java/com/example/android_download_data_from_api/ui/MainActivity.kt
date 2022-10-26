@@ -1,10 +1,14 @@
 package com.example.android_download_data_from_api.ui
 
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.annotation.SuppressLint
+import android.app.DownloadManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.*
 import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
@@ -12,13 +16,11 @@ import android.view.Menu
 import android.view.View
 import android.view.View.GONE
 import android.widget.GridView
+import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
-import com.example.android_download_data_from_api.common.adapters.Common
-import com.example.android_download_data_from_api.common.adapters.GridAdapter
-import com.example.android_download_data_from_api.common.adapters.OnBindInterface
-import com.example.android_download_data_from_api.common.adapters.UserListAdapter
+import com.example.android_download_data_from_api.common.adapters.*
 import com.example.android_download_data_from_api.databinding.ActivityMainBinding
 import com.example.android_download_data_from_api.models.Photo
 import com.example.android_download_data_from_api.models.User
@@ -28,6 +30,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.File
 import java.lang.Thread.currentThread
 
 class MainActivity : AppCompatActivity() {
@@ -53,7 +56,7 @@ class MainActivity : AppCompatActivity() {
         binding.recycleView.layoutManager = LinearLayoutManager(this@MainActivity)
         binding.recycleView.adapter = recyclerAdapter
         binding.recycleView.setItemViewCacheSize(userList.size)
-        recyclerAdapter.bind(object : OnBindInterface {
+        recyclerAdapter.bindCallback(object : OnBindInterface {
             override fun onBinding(photo: Photo) {
                 val bundle = Bundle()
                 val userImagesFragment = UserImagesFragment()
@@ -66,6 +69,53 @@ class MainActivity : AppCompatActivity() {
                 .commit()
             }
         })
+
+        recyclerAdapter.downloadImgCallback(object : OnDownladImageInterface {
+            override fun onDownladImage(photo: Photo) {
+                task = Runnable {
+                    val usrArr: ArrayList<String> = ArrayList()
+                    usrArr.add(photo.src.original)
+                    usrArr.add(photo.src.large2X)
+                    usrArr.add(photo.src.large)
+                    usrArr.add(photo.src.medium)
+                    usrArr.add(photo.src.small)
+                    usrArr.add(photo.src.portrait)
+                    usrArr.add(photo.src.landscape)
+                    usrArr.add(photo.src.tiny)
+
+                    for ((index, i) in (0 until usrArr.size).withIndex()) {
+                        val url = usrArr[index]
+                        startDownloading(photo.photographer.toString(), url)
+                    }
+                }
+                thread = Thread(task)
+                thread.start()
+                Log.d("DOWNLOADING IN THREAD: ", "Thread: ${thread.name}")
+            }
+        })
+    }
+
+    fun startDownloading(fileName: String, imageUrl: String) {
+        try {
+            val downloadManager: DownloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val downloadUrl = Uri.parse(imageUrl)
+            val request: DownloadManager.Request = DownloadManager.Request(downloadUrl)
+
+            request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
+                .setAllowedOverRoaming(false)
+                .setTitle(fileName)
+                .setMimeType("image/jpeg").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, File.separator+fileName+".jpg")
+
+            downloadManager.enqueue(request)
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                Toast.makeText(this, "Image downloaded", Toast.LENGTH_SHORT).show()
+            }
+
+        } catch (e: Exception) {
+            Log.d("DOWNLOADING ERROR: ", "Downloading has been stopped, exception: $e")
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -142,7 +192,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        thread.interrupt()
         Log.e("MainActivity", "${Thread.currentThread().name}, ${Thread.currentThread().state}")
         Log.e("MainActivity", "${thread.name}, ${thread.state}")
         super.onDestroy()
