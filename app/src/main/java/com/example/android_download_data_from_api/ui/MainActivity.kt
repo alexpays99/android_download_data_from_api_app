@@ -32,6 +32,10 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 import java.lang.Thread.currentThread
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
 
 class MainActivity : AppCompatActivity() {
     private var userList = mutableListOf<Photo>()
@@ -39,8 +43,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var gridAdapter: GridAdapter
     private lateinit var binding: ActivityMainBinding
     private var downloadService: DownloadService? = null
-    private lateinit var thread: Thread
-    private lateinit var task: Runnable
+    private var executorService: ExecutorService = Executors.newFixedThreadPool(3)
+    private lateinit var downloadImageTask: Runnable
     private var isRunning: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,7 +76,7 @@ class MainActivity : AppCompatActivity() {
 
         recyclerAdapter.downloadImgCallback(object : OnDownladImageInterface {
             override fun onDownladImage(photo: Photo) {
-                task = Runnable {
+                downloadImageTask = Runnable {
                     val usrArr: ArrayList<String> = ArrayList()
                     usrArr.add(photo.src.original)
                     usrArr.add(photo.src.large2X)
@@ -86,11 +90,15 @@ class MainActivity : AppCompatActivity() {
                     for ((index, i) in (0 until usrArr.size).withIndex()) {
                         val url = usrArr[index]
                         startDownloading(photo.photographer.toString(), url)
+                        Log.d("DOWNLOADING IN THREAD: ",
+                            "startDownloading()," +
+                                "${photo.photographer}, "+
+                                "Thread: ${currentThread().name}"+
+                                "Thread: ${currentThread().state}")
                     }
                 }
-                thread = Thread(task)
-                thread.start()
-                Log.d("DOWNLOADING IN THREAD: ", "Thread: ${thread.name}")
+                executorService.execute(downloadImageTask)
+                Log.d("DOWNLOADED IN THREAD: ", "Thread: ${currentThread().name}")
             }
         })
     }
@@ -103,11 +111,13 @@ class MainActivity : AppCompatActivity() {
 
             request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
                 .setAllowedOverRoaming(false)
-                .setTitle(fileName)
+                .setTitle("Downloading: $fileName")
+                .setDescription("Downloading img...")
                 .setMimeType("image/jpeg").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, File.separator+fileName+".jpg")
 
             downloadManager.enqueue(request)
+
             val handler = Handler(Looper.getMainLooper())
             handler.post {
                 Toast.makeText(this, "Image downloaded", Toast.LENGTH_SHORT).show()
@@ -192,8 +202,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        Log.e("MainActivity", "${Thread.currentThread().name}, ${Thread.currentThread().state}")
-        Log.e("MainActivity", "${thread.name}, ${thread.state}")
+        Log.e("MainActivity", "${currentThread().name}, ${currentThread().state}")
+        Log.e("MainActivity", "${currentThread().name}, ${currentThread().state}")
         super.onDestroy()
     }
 

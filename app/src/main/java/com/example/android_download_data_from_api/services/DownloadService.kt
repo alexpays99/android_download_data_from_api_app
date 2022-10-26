@@ -13,6 +13,13 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+enum class ButtonStatus {
+    DEFAULT,
+    IN_PROGRESS,
+    DOWNLOADED,
+    IN_QUEUE
+}
+
 class DownloadService: Service() {
     private val binder = CustomBinder()
     private lateinit var thread: Thread
