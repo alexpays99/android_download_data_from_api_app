@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity() {
                 val bundle = Bundle()
                 val userImagesFragment = UserImagesFragment()
                 bundle.putString("message", photo.photographer.toString())
+                bundle.putString("photographerID", photo.photographerID.toString())
                 userImagesFragment.arguments = bundle
                 supportFragmentManager
                 .beginTransaction()
@@ -103,7 +104,7 @@ class MainActivity : AppCompatActivity() {
 
                     for ((index, i) in (0 until usrArr.size).withIndex()) {
                         val url = usrArr[index]
-                        startDownloading(photo.photographer.toString(), url)
+                        startDownloading(photo.photographer.toString()+photo.photographerID, url)
 //                        downloadService?.startDownloading(photo.photographer.toString(), url)
                         Log.d("DOWNLOADING IN THREAD: ",
                             "startDownloading()," +
