@@ -1,5 +1,6 @@
 package com.example.android_download_data_from_api.common.adapters
 
+import android.content.ClipData.Item
 import android.graphics.Color
 import android.util.Log
 import android.view.LayoutInflater
@@ -11,6 +12,7 @@ import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.models.Photo
+import com.example.android_download_data_from_api.ui.ItemStatus
 
 interface OnBindInterface {
     fun onBinding(photo: Photo)

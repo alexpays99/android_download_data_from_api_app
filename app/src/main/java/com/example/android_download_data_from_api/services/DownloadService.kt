@@ -1,9 +1,13 @@
 package com.example.android_download_data_from_api.services
 
+import android.app.DownloadManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
-import android.os.Binder
-import android.os.IBinder
+import android.net.Uri
+import android.os.*
+import android.util.Log
+import android.widget.Toast
 import com.example.android_download_data_from_api.BuildConfig
 import com.example.android_download_data_from_api.common.adapters.OnBindInterface
 import com.example.android_download_data_from_api.interfaces.RetrofitApiCallInterface
@@ -12,18 +16,10 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-
-enum class ButtonStatus {
-    DEFAULT,
-    IN_PROGRESS,
-    DOWNLOADED,
-    IN_QUEUE
-}
+import java.io.File
 
 class DownloadService: Service() {
     private val binder = CustomBinder()
-    private lateinit var thread: Thread
-    private lateinit var task: Runnable
 
     inner class CustomBinder : Binder() {
         fun getService(): DownloadService = this@DownloadService
@@ -40,7 +36,6 @@ class DownloadService: Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         println("onStartCommand() method is called")
         return START_STICKY
-        //            return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onDestroy() {
@@ -50,19 +45,34 @@ class DownloadService: Service() {
         println("SERVICE HAS BEEN DESTROYED")
     }
 
-//    fun setupTask(task: Runnable) {
-//        println("setupTask() method is called")
-//        thread = Thread(task)
-//        println("onDestroy() method is called")
-//        thread.start()
-//        println(thread.name + ", " + thread.state + "has started")
-//    }
-//
-//    fun dispose() {
-//        println("dispose() method is called")
-//        thread.stop()
-//        println(thread.name + ", " + thread.state)
-//        stopSelf()
-//        println("service has been destroyed")
-//    }
+    fun startDownloading(fileName: String, imageUrl: String) {
+        try {
+            val downloadManager: DownloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val downloadUrl = Uri.parse(imageUrl)
+            val request: DownloadManager.Request = DownloadManager.Request(downloadUrl)
+
+            request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
+                .setAllowedOverRoaming(false)
+                .setTitle("Downloading: $fileName")
+                .setDescription("Downloading img...")
+                .setMimeType("image/jpeg").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, File.separator+fileName+".jpg")
+
+            downloadManager.enqueue(request)
+
+            val handler = Handler(Looper.getMainLooper())
+            handler.post {
+                Toast.makeText(this, "Image downloaded", Toast.LENGTH_SHORT).show()
+            }
+
+        } catch (e: Exception) {
+            Log.d("DOWNLOADING ERROR: ", "Downloading has been stopped, exception: $e")
+        }
+    }
+
+    fun dispose() {
+        println("dispose() method is called")
+        stopSelf()
+        println("service has been destroyed")
+    }
 }

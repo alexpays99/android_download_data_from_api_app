@@ -1,26 +1,26 @@
 package com.example.android_download_data_from_api.ui
 
-import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.*
-import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.View
 import android.view.View.GONE
-import android.widget.GridView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
-import com.example.android_download_data_from_api.common.adapters.*
+import com.example.android_download_data_from_api.common.adapters.Common
+import com.example.android_download_data_from_api.common.adapters.OnBindInterface
+import com.example.android_download_data_from_api.common.adapters.OnDownladImageInterface
+import com.example.android_download_data_from_api.common.adapters.UserListAdapter
 import com.example.android_download_data_from_api.databinding.ActivityMainBinding
 import com.example.android_download_data_from_api.models.Photo
 import com.example.android_download_data_from_api.models.User
@@ -32,20 +32,26 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 import java.lang.Thread.currentThread
-import java.util.concurrent.BlockingQueue
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.LinkedBlockingQueue
+
+
+enum class ItemStatus {
+    DEFAULT,
+    IN_PROGRESS,
+    DOWNLOADED,
+    IN_QUEUE
+}
 
 class MainActivity : AppCompatActivity() {
     private var userList = mutableListOf<Photo>()
     private lateinit var recyclerAdapter: UserListAdapter
-    private lateinit var gridAdapter: GridAdapter
     private lateinit var binding: ActivityMainBinding
     private var downloadService: DownloadService? = null
     private var executorService: ExecutorService = Executors.newFixedThreadPool(3)
     private lateinit var downloadImageTask: Runnable
     private var isRunning: Boolean = false
+    private var itemStatus: ItemStatus = ItemStatus.DEFAULT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,6 +82,14 @@ class MainActivity : AppCompatActivity() {
 
         recyclerAdapter.downloadImgCallback(object : OnDownladImageInterface {
             override fun onDownladImage(photo: Photo) {
+//                when (itemStatus) {
+//                    ItemStatus.DEFAULT ->
+//                        ItemStatus.IN_PROGRESS ->
+//                    ItemStatus.DOWNLOADED ->
+//                    ItemStatus.IN_QUEUE ->
+//                }
+
+
                 downloadImageTask = Runnable {
                     val usrArr: ArrayList<String> = ArrayList()
                     usrArr.add(photo.src.original)
@@ -90,6 +104,7 @@ class MainActivity : AppCompatActivity() {
                     for ((index, i) in (0 until usrArr.size).withIndex()) {
                         val url = usrArr[index]
                         startDownloading(photo.photographer.toString(), url)
+//                        downloadService?.startDownloading(photo.photographer.toString(), url)
                         Log.d("DOWNLOADING IN THREAD: ",
                             "startDownloading()," +
                                 "${photo.photographer}, "+
@@ -105,6 +120,15 @@ class MainActivity : AppCompatActivity() {
 
     fun startDownloading(fileName: String, imageUrl: String) {
         try {
+            val direct = File(
+                Environment.getExternalStorageDirectory()
+                    .toString() + "/dhaval_files/$fileName"
+            )
+
+            if (!direct.exists()) {
+                direct.mkdirs()
+            }
+
             val downloadManager: DownloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             val downloadUrl = Uri.parse(imageUrl)
             val request: DownloadManager.Request = DownloadManager.Request(downloadUrl)
@@ -114,7 +138,7 @@ class MainActivity : AppCompatActivity() {
                 .setTitle("Downloading: $fileName")
                 .setDescription("Downloading img...")
                 .setMimeType("image/jpeg").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, File.separator+fileName+".jpg")
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, File.separator + fileName + File.separator+fileName+".jpg")
 
             downloadManager.enqueue(request)
 
@@ -122,7 +146,6 @@ class MainActivity : AppCompatActivity() {
             handler.post {
                 Toast.makeText(this, "Image downloaded", Toast.LENGTH_SHORT).show()
             }
-
         } catch (e: Exception) {
             Log.d("DOWNLOADING ERROR: ", "Downloading has been stopped, exception: $e")
         }
@@ -187,18 +210,10 @@ class MainActivity : AppCompatActivity() {
         println("onStart method has been called")
         super.onStart()
         val intent = Intent(this@MainActivity, DownloadService::class.java)
-        if (isRunning == false) {
-            //            ContextCompat.startForegroundService(this, intent)
-            startService(intent)
-            println("SERVICE HAS STARTED")
-            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-            println("SERVICE HAS BINDED")
-//            setupRunnableApiCallTask()
-
-        } else {
-            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-            println("SERVICE HAS BINDED")
-        }
+        startService(intent)
+        println("SERVICE HAS STARTED")
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        println("SERVICE HAS BINDED")
     }
 
     override fun onDestroy() {
