@@ -1,6 +1,6 @@
 package com.example.android_download_data_from_api.models
 
-import com.example.android_download_data_from_api.ui.ItemStatus
+import com.example.android_download_data_from_api.common.adapters.ItemStatus
 import com.google.gson.annotations.SerializedName
 
 data class User (

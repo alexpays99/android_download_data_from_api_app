@@ -2,6 +2,8 @@ package com.example.android_download_data_from_api.common.adapters
 
 import android.content.ClipData.Item
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -11,20 +13,13 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.android_download_data_from_api.R
+import com.example.android_download_data_from_api.interfaces.OnBindInterface
+import com.example.android_download_data_from_api.interfaces.OnDownloadImageInterface
 import com.example.android_download_data_from_api.models.Photo
-import com.example.android_download_data_from_api.ui.ItemStatus
-
-interface OnBindInterface {
-    fun onBinding(photo: Photo)
-}
-
-interface OnDownladImageInterface {
-    fun onDownladImage(photo: Photo)
-}
 
 class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserListAdapter.ViewHolder>() {
     private lateinit var cardViewCallback: OnBindInterface
-    private lateinit var downloadImg: OnDownladImageInterface
+    private lateinit var downloadImg: OnDownloadImageInterface
 
     inner class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
         var name: TextView
@@ -43,13 +38,16 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
         cardViewCallback = callback
     }
 
-    fun downloadImgCallback(callback: OnDownladImageInterface) {
+    fun downloadImgCallback(callback: OnDownloadImageInterface) {
         downloadImg = callback
     }
 
     fun updateItemState(position: Int, state: ItemStatus) {
         list[position].state = state
-        notifyItemChanged(position)
+        val handler = Handler(Looper.getMainLooper())
+        handler.post {
+            notifyItemChanged(position)
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -62,15 +60,37 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val dataPosition = list[position]
 
-        println(list[position])
         holder.name.text = dataPosition.photographer
         holder.name.setTextColor(Color.parseColor(dataPosition.avgColor))
         holder.cardView.setOnClickListener {
             cardViewCallback.onBinding(list[position])
         }
-        holder.button.setOnClickListener {
-            downloadImg.onDownladImage(list[position])
+
+        when(dataPosition.state) {
+            ItemStatus.DEFAULT -> {
+                holder.button.text = "Download"
+                Log.d("USER STATUS", "${dataPosition.photographer}: DEFAULT")
+                holder.button.setOnClickListener {
+                    downloadImg.onDownloadImage(list[position], position)
+                }
+            }
+            ItemStatus.IN_PROGRESS -> {
+                holder.button.text = "In Progress"
+                Log.d("USER STATUS", "${dataPosition.photographer}: IN_PROGRESS")
+            }
+            ItemStatus.IN_QUEUE -> {
+                holder.button.text = "In Queue"
+                Log.d("USER STATUS", "${dataPosition.photographer}: IN_QUEUE")
+            }
+            ItemStatus.DOWNLOADED -> {
+                holder.button.text = "Downloaded"
+                Log.d("USER STATUS", "${dataPosition.photographer}: DOWNLOADED")
+//                holder.cardView.setOnClickListener {
+//                    cardViewCallback.onBinding(list[position])
+//                }
+            }
         }
+
         Log.d("UserListAdapter", "Holder Name: ${holder.name.text}")
         Log.d("UserListAdapter", "List[Position] Name: ${dataPosition.photographer}")
     }

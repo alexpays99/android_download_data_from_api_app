@@ -1,30 +1,30 @@
 package com.example.android_download_data_from_api.ui
 
 import android.annotation.SuppressLint
-import android.app.DownloadManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.ServiceConnection
-import android.net.Uri
 import android.os.*
 import android.util.Log
 import android.view.Menu
 import android.view.View
 import android.view.View.GONE
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.common.adapters.Common
-import com.example.android_download_data_from_api.common.adapters.OnBindInterface
-import com.example.android_download_data_from_api.common.adapters.OnDownladImageInterface
+import com.example.android_download_data_from_api.common.adapters.ItemStatus
 import com.example.android_download_data_from_api.common.adapters.UserListAdapter
 import com.example.android_download_data_from_api.databinding.ActivityMainBinding
+import com.example.android_download_data_from_api.interfaces.OnBindInterface
+import com.example.android_download_data_from_api.interfaces.OnDownloadImageInterface
 import com.example.android_download_data_from_api.models.Photo
 import com.example.android_download_data_from_api.models.User
 import com.example.android_download_data_from_api.services.DownloadService
+import com.example.android_download_data_from_api.services.DownloadStatusReceiver
 import com.example.android_download_data_from_api.ui.fragments.UserImagesFragment
 import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
@@ -35,29 +35,23 @@ import java.lang.Thread.currentThread
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-
-enum class ItemStatus {
-    DEFAULT,
-    IN_PROGRESS,
-    DOWNLOADED,
-    IN_QUEUE
-}
-
 class MainActivity : AppCompatActivity() {
     private var userList = mutableListOf<Photo>()
     private lateinit var recyclerAdapter: UserListAdapter
     private lateinit var binding: ActivityMainBinding
+    private val downloadStatusReceiver = DownloadStatusReceiver()
     private var downloadService: DownloadService? = null
     private var executorService: ExecutorService = Executors.newFixedThreadPool(3)
     private lateinit var downloadImageTask: Runnable
-    private var isRunning: Boolean = false
-    private var itemStatus: ItemStatus = ItemStatus.DEFAULT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        downloadStatusReceiver.downloadStatusCallback = { position, itemStatus ->
+            recyclerAdapter.updateItemState(position, itemStatus)
+        }
         setupRecyclerAdapter()
     }
 
@@ -80,15 +74,18 @@ class MainActivity : AppCompatActivity() {
                     .commit()
             }
         })
-        recyclerAdapter.downloadImgCallback(object : OnDownladImageInterface {
-            override fun onDownladImage(photo: Photo) {
-                val intent = Intent(this@MainActivity, DownloadService::class.java)
-                startService(intent)
+        recyclerAdapter.downloadImgCallback(object : OnDownloadImageInterface {
+            override fun onDownloadImage(photo: Photo, position: Int) {
+                // run service
+                val downloadServiceIntent = Intent(this@MainActivity, DownloadService::class.java)
+                startService(downloadServiceIntent)
                 println("SERVICE HAS STARTED")
-                bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+                bindService(downloadServiceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 println("SERVICE HAS BINDED")
 
                 downloadImageTask = Runnable {
+                    downloadService?.postState(position, ItemStatus.IN_PROGRESS)
+
                     val usrArr: ArrayList<String> = ArrayList()
                     usrArr.add(photo.src.original)
                     usrArr.add(photo.src.large2X)
@@ -101,8 +98,8 @@ class MainActivity : AppCompatActivity() {
 
                     for ((index, i) in (0 until usrArr.size).withIndex()) {
                         val url = usrArr[index]
-//                        startDownloading(photo.photographer.toString() + photo.photographerID, url)
                         downloadService?.startDownloading(photo.photographer.toString() + photo.photographerID, url)
+                        recyclerAdapter.updateItemState(position, ItemStatus.IN_QUEUE)
                         Log.d(
                             "DOWNLOADING IN THREAD: ",
                             "startDownloading()," +
@@ -111,49 +108,12 @@ class MainActivity : AppCompatActivity() {
                                     "Thread: ${currentThread().state}"
                         )
                     }
+                    downloadService?.postState(position, ItemStatus.DOWNLOADED)
                     Log.d("DOWNLOADED IN THREAD: ", "Thread: ${currentThread().name}")
                 }
                 executorService.execute(downloadImageTask)
             }
         })
-    }
-
-    fun startDownloading(fileName: String, imageUrl: String) {
-        try {
-            val direct = File(
-                Environment.getExternalStorageDirectory()
-                    .toString() + "/dhaval_files/$fileName"
-            )
-
-            if (!direct.exists()) {
-                direct.mkdirs()
-            }
-
-            val downloadManager: DownloadManager =
-                getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            val downloadUrl = Uri.parse(imageUrl)
-            val request: DownloadManager.Request = DownloadManager.Request(downloadUrl)
-
-            request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI)
-                .setAllowedOverRoaming(false)
-                .setTitle("Downloading: $fileName")
-                .setDescription("Downloading img...")
-                .setMimeType("image/jpeg")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalPublicDir(
-                    Environment.DIRECTORY_DOWNLOADS,
-                    File.separator + fileName + File.separator + fileName + ".jpg"
-                )
-
-            downloadManager.enqueue(request)
-
-            val handler = Handler(Looper.getMainLooper())
-            handler.post {
-                Toast.makeText(this, "Image downloaded", Toast.LENGTH_SHORT).show()
-            }
-        } catch (e: Exception) {
-            Log.d("DOWNLOADING ERROR: ", "Downloading has been stopped, exception: $e")
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -179,12 +139,23 @@ class MainActivity : AppCompatActivity() {
                             if (response.isSuccessful) {
                                 Log.e("RESPONSE: ", "response.isSuccessful")
                                 try {
+                                    val handler = Handler(Looper.getMainLooper())
+                                    handler.post {
+                                        val resp = response.body()
+                                        resp?.photos?.forEach { photo ->
+                                            val path = "/storage/emulated/0/Download/${photo.photographer}${photo.photographerID}"
+                                            if (File(path).exists()) {
+                                                photo.state = ItemStatus.DOWNLOADED
+                                            } else {
+                                                photo.state = ItemStatus.DEFAULT
+                                            }
+                                        }
+                                    }
                                     userList.addAll(response.body()!!.photos)
                                     Log.e("USERLIST RESUL:", userList.toString())
                                     recyclerAdapter.notifyDataSetChanged()
                                     runOnUiThread { progress_two.visibility = GONE }
                                     Log.e("RETROFIT RESUL: ", userList.toString())
-
                                 } catch (e: Error) {
                                     Log.e("****onResponse", e.toString())
                                 }
@@ -214,6 +185,8 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         println("onStart method has been called")
         super.onStart()
+        val intentFilter = IntentFilter()
+        registerReceiver(downloadStatusReceiver, intentFilter)
 //        val intent = Intent(this@MainActivity, DownloadService::class.java)
 //        startService(intent)
 //        println("SERVICE HAS STARTED")

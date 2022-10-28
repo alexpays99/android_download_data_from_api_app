@@ -2,38 +2,17 @@ package com.example.android_download_data_from_api.services
 
 import android.app.DownloadManager
 import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.*
 import android.util.Log
 import android.widget.Toast
-import com.example.android_download_data_from_api.BuildConfig
-import com.example.android_download_data_from_api.common.adapters.OnBindInterface
-import com.example.android_download_data_from_api.interfaces.RetrofitApiCallInterface
-import com.example.android_download_data_from_api.models.Photo
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import com.example.android_download_data_from_api.common.adapters.ItemStatus
 import java.io.File
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-
-enum class ItemStatus {
-    DEFAULT,
-    IN_PROGRESS,
-    DOWNLOADED,
-    IN_QUEUE
-}
 
 class DownloadService : Service() {
     private val binder = CustomBinder()
-    private var executorService: ExecutorService = Executors.newFixedThreadPool(3)
-    private lateinit var downloadImageTask: Runnable
-    private val downloadStatusReceiver = DownloadStatusReceiver()
-//    private val downloadStatus: String
 
     inner class CustomBinder : Binder() {
         fun getService(): DownloadService = this@DownloadService
@@ -57,6 +36,15 @@ class DownloadService : Service() {
         stopSelf()
         super.onDestroy()
         println("SERVICE HAS BEEN DESTROYED")
+    }
+
+    fun postState(position: Int, state: ItemStatus) {
+        val intent = Intent()
+        val bundle = Bundle()
+        bundle.putInt("DOWNLOAD_POSITION_BROADCAST", position)
+        bundle.putString("DOWNLOAD_STATUS_BROADCAST", state.toString())
+        intent.putExtras(bundle)
+        sendBroadcast(intent)
     }
 
     fun startDownloading(fileName: String, imageUrl: String) {
