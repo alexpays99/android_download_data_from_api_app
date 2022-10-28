@@ -74,22 +74,19 @@ class MainActivity : AppCompatActivity() {
                 bundle.putString("photographerID", photo.photographerID.toString())
                 userImagesFragment.arguments = bundle
                 supportFragmentManager
-                .beginTransaction()
-                .replace(R.id.recListConstraintLayout, userImagesFragment)
-                .addToBackStack(null)
-                .commit()
+                    .beginTransaction()
+                    .replace(R.id.recListConstraintLayout, userImagesFragment)
+                    .addToBackStack(null)
+                    .commit()
             }
         })
-
         recyclerAdapter.downloadImgCallback(object : OnDownladImageInterface {
             override fun onDownladImage(photo: Photo) {
-//                when (itemStatus) {
-//                    ItemStatus.DEFAULT ->
-//                        ItemStatus.IN_PROGRESS ->
-//                    ItemStatus.DOWNLOADED ->
-//                    ItemStatus.IN_QUEUE ->
-//                }
-
+                val intent = Intent(this@MainActivity, DownloadService::class.java)
+                startService(intent)
+                println("SERVICE HAS STARTED")
+                bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+                println("SERVICE HAS BINDED")
 
                 downloadImageTask = Runnable {
                     val usrArr: ArrayList<String> = ArrayList()
@@ -104,17 +101,19 @@ class MainActivity : AppCompatActivity() {
 
                     for ((index, i) in (0 until usrArr.size).withIndex()) {
                         val url = usrArr[index]
-                        startDownloading(photo.photographer.toString()+photo.photographerID, url)
-//                        downloadService?.startDownloading(photo.photographer.toString(), url)
-                        Log.d("DOWNLOADING IN THREAD: ",
+//                        startDownloading(photo.photographer.toString() + photo.photographerID, url)
+                        downloadService?.startDownloading(photo.photographer.toString() + photo.photographerID, url)
+                        Log.d(
+                            "DOWNLOADING IN THREAD: ",
                             "startDownloading()," +
-                                "${photo.photographer}, "+
-                                "Thread: ${currentThread().name}"+
-                                "Thread: ${currentThread().state}")
+                                    "${photo.photographer}, " +
+                                    "Thread: ${currentThread().name}" +
+                                    "Thread: ${currentThread().state}"
+                        )
                     }
+                    Log.d("DOWNLOADED IN THREAD: ", "Thread: ${currentThread().name}")
                 }
                 executorService.execute(downloadImageTask)
-                Log.d("DOWNLOADED IN THREAD: ", "Thread: ${currentThread().name}")
             }
         })
     }
@@ -130,7 +129,8 @@ class MainActivity : AppCompatActivity() {
                 direct.mkdirs()
             }
 
-            val downloadManager: DownloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val downloadManager: DownloadManager =
+                getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             val downloadUrl = Uri.parse(imageUrl)
             val request: DownloadManager.Request = DownloadManager.Request(downloadUrl)
 
@@ -138,8 +138,12 @@ class MainActivity : AppCompatActivity() {
                 .setAllowedOverRoaming(false)
                 .setTitle("Downloading: $fileName")
                 .setDescription("Downloading img...")
-                .setMimeType("image/jpeg").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, File.separator + fileName + File.separator+fileName+".jpg")
+                .setMimeType("image/jpeg")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(
+                    Environment.DIRECTORY_DOWNLOADS,
+                    File.separator + fileName + File.separator + fileName + ".jpg"
+                )
 
             downloadManager.enqueue(request)
 
@@ -210,11 +214,9 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         println("onStart method has been called")
         super.onStart()
-        val intent = Intent(this@MainActivity, DownloadService::class.java)
-        startService(intent)
-        println("SERVICE HAS STARTED")
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-        println("SERVICE HAS BINDED")
+//        val intent = Intent(this@MainActivity, DownloadService::class.java)
+//        startService(intent)
+//        println("SERVICE HAS STARTED")
     }
 
     override fun onDestroy() {
@@ -226,17 +228,12 @@ class MainActivity : AppCompatActivity() {
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             downloadService = (service as DownloadService.CustomBinder).getService()
-            if (downloadService != null) {
-                setupRecyclerAdapter()
-                isRunning = true
-                println("serviceConnection has been called")
-            }
+            println("onServiceConnected has been called")
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
             downloadService = null
-            isRunning = false
-            println("audioService = null")
+            println("downloadService = null")
         }
     }
 }

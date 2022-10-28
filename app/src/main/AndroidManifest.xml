@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -30,6 +31,15 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+        <service android:name=".services.DownloadService" />
+
+        <receiver android:name=".services.DownloadStatusReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="DOWNLOAD_STATUS_BROADCAST" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

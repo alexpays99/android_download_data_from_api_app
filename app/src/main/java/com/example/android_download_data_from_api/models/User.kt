@@ -1,5 +1,6 @@
 package com.example.android_download_data_from_api.models
 
+import com.example.android_download_data_from_api.ui.ItemStatus
 import com.google.gson.annotations.SerializedName
 
 data class User (
@@ -23,6 +24,7 @@ data class Photo(
     val avgColor: String?,
     val src: Src,
     val alt: String?,
+    var state: ItemStatus = ItemStatus.DEFAULT
 )
 
 data class Src (

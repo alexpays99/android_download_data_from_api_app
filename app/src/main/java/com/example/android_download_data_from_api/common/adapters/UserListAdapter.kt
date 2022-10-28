@@ -47,6 +47,11 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
         downloadImg = callback
     }
 
+    fun updateItemState(position: Int, state: ItemStatus) {
+        list[position].state = state
+        notifyItemChanged(position)
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val context = parent.context
         val inflater = LayoutInflater.from(context)
@@ -64,7 +69,6 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
             cardViewCallback.onBinding(list[position])
         }
         holder.button.setOnClickListener {
-            // download user images
             downloadImg.onDownladImage(list[position])
         }
         Log.d("UserListAdapter", "Holder Name: ${holder.name.text}")
