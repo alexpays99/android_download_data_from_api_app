@@ -76,10 +76,7 @@ class DownloadService : Service() {
 
             downloadManager.enqueue(request)
 
-            val handler = Handler(Looper.getMainLooper())
-            handler.post {
-                Toast.makeText(this, "Image downloaded", Toast.LENGTH_SHORT).show()
-            }
+            stopSelf()
         } catch (e: Exception) {
             Log.d("DOWNLOADING ERROR: ", "Downloading has been stopped, exception: $e")
         }

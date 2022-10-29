@@ -13,6 +13,7 @@ import android.view.View
 import android.view.View.GONE
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.common.adapters.Common
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private var downloadService: DownloadService? = null
     private var executorService: ExecutorService = Executors.newFixedThreadPool(3)
     private lateinit var downloadImageTask: Runnable
+    private var isRunning: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         downloadStatusReceiver.downloadStatusCallback = { position, itemStatus ->
             recyclerAdapter.updateItemState(position, itemStatus)
         }
+
         setupRecyclerAdapter()
     }
 
@@ -78,7 +81,7 @@ class MainActivity : AppCompatActivity() {
             override fun onDownloadImage(photo: Photo, position: Int) {
                 // run service
                 val downloadServiceIntent = Intent(this@MainActivity, DownloadService::class.java)
-                startService(downloadServiceIntent)
+                ContextCompat.startForegroundService(this@MainActivity, intent)
                 println("SERVICE HAS STARTED")
                 bindService(downloadServiceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 println("SERVICE HAS BINDED")
@@ -185,11 +188,21 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         println("onStart method has been called")
         super.onStart()
-        val intentFilter = IntentFilter()
+        if (isRunning == true) {
+//            ContextCompat.startForegroundService(this, intent)
+//            println("SERVICE HAS STARTED")
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            println("SERVICE HAS BINDED")
+        }
+        val intentFilter = IntentFilter("DOWNLOAD_STATUS_BROADCAST")
         registerReceiver(downloadStatusReceiver, intentFilter)
-//        val intent = Intent(this@MainActivity, DownloadService::class.java)
-//        startService(intent)
-//        println("SERVICE HAS STARTED")
+    }
+
+    override fun onStop() {
+        println("onStart method has been called")
+        super.onStop()
+        unbindService(serviceConnection)
+        println("SERVICE UNBINDED")
     }
 
     override fun onDestroy() {
@@ -201,11 +214,15 @@ class MainActivity : AppCompatActivity() {
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             downloadService = (service as DownloadService.CustomBinder).getService()
-            println("onServiceConnected has been called")
+            if (downloadService != null) {
+                isRunning = true
+                println("onServiceConnected has been called")
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
             downloadService = null
+            isRunning = false
             println("downloadService = null")
         }
     }
