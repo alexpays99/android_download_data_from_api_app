@@ -7,11 +7,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.*
 import android.util.Log
-import android.widget.Toast
-import com.example.android_download_data_from_api.common.adapters.ItemStatus
+import com.example.android_download_data_from_api.general.ItemStatus
 import java.io.File
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.LinkedBlockingQueue
 
 class DownloadService : Service() {
     private val binder = CustomBinder()

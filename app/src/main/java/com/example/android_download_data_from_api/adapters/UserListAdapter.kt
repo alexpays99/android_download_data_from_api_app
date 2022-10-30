@@ -1,4 +1,4 @@
-package com.example.android_download_data_from_api.common.adapters
+package com.example.android_download_data_from_api.adapters
 
 import android.graphics.Color
 import android.os.Handler
@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.android_download_data_from_api.R
+import com.example.android_download_data_from_api.general.ItemStatus
 import com.example.android_download_data_from_api.interfaces.OnBindInterface
 import com.example.android_download_data_from_api.interfaces.OnDownloadImageInterface
 import com.example.android_download_data_from_api.models.Photo

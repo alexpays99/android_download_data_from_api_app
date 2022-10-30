@@ -1,4 +1,4 @@
-package com.example.android_download_data_from_api.common.adapters
+package com.example.android_download_data_from_api.adapters
 
 import android.annotation.SuppressLint
 import android.content.Context

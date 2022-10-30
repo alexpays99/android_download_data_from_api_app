@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -15,7 +13,7 @@ import android.widget.TextView
 import androidx.core.graphics.drawable.toDrawable
 import androidx.fragment.app.Fragment
 import com.example.android_download_data_from_api.R
-import com.example.android_download_data_from_api.common.adapters.GridAdapter
+import com.example.android_download_data_from_api.adapters.GridAdapter
 import com.example.android_download_data_from_api.models.ImageFromPath
 import java.io.File
 
