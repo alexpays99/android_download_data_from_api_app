@@ -1,6 +1,5 @@
 package com.example.android_download_data_from_api.common.adapters
 
-import android.content.ClipData.Item
 import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
@@ -62,40 +61,42 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
 
         holder.name.text = dataPosition.photographer
         holder.name.setTextColor(Color.parseColor(dataPosition.avgColor))
-        holder.cardView.setOnClickListener {
-            cardViewCallback.onBinding(list[position])
-        }
+//        holder.setIsRecyclable(false)
 
         when(dataPosition.state) {
             ItemStatus.DEFAULT -> {
                 holder.button.text = "Download"
-                Log.d("USER STATUS", "${dataPosition.photographer}: DEFAULT")
                 holder.button.setOnClickListener {
                     downloadImg.onDownloadImage(list[position], position)
                 }
-            }
-            ItemStatus.IN_PROGRESS -> {
-                holder.button.text = "In Progress"
-                Log.d("USER STATUS", "${dataPosition.photographer}: IN_PROGRESS")
+                Log.d("USER STATUS", "${dataPosition.photographer}: DEFAULT")
             }
             ItemStatus.IN_QUEUE -> {
                 holder.button.text = "In Queue"
                 Log.d("USER STATUS", "${dataPosition.photographer}: IN_QUEUE")
             }
+            ItemStatus.IN_PROGRESS -> {
+                holder.button.text = "In Progress"
+                Log.d("USER STATUS", "${dataPosition.photographer}: IN_PROGRESS")
+            }
             ItemStatus.DOWNLOADED -> {
                 holder.button.text = "Downloaded"
+                holder.button.isEnabled = false
                 Log.d("USER STATUS", "${dataPosition.photographer}: DOWNLOADED")
-//                holder.cardView.setOnClickListener {
-//                    cardViewCallback.onBinding(list[position])
-//                }
+                holder.cardView.setOnClickListener {
+                    cardViewCallback.onBinding(list[position])
+                }
             }
         }
-
         Log.d("UserListAdapter", "Holder Name: ${holder.name.text}")
         Log.d("UserListAdapter", "List[Position] Name: ${dataPosition.photographer}")
     }
 
     override fun getItemCount(): Int {
         return list.size
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return position
     }
 }

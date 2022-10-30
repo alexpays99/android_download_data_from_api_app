@@ -10,6 +10,8 @@ import android.util.Log
 import android.widget.Toast
 import com.example.android_download_data_from_api.common.adapters.ItemStatus
 import java.io.File
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.LinkedBlockingQueue
 
 class DownloadService : Service() {
     private val binder = CustomBinder()
@@ -33,16 +35,16 @@ class DownloadService : Service() {
 
     override fun onDestroy() {
         println("onDestroy() method is called")
-        stopSelf()
         super.onDestroy()
+        stopSelf()
         println("SERVICE HAS BEEN DESTROYED")
     }
 
-    fun postState(position: Int, state: ItemStatus) {
-        val intent = Intent()
+    fun setState(position: Int, state: ItemStatus) {
+        val intent = Intent("UPDATE_STATE")
         val bundle = Bundle()
-        bundle.putInt("DOWNLOAD_POSITION_BROADCAST", position)
-        bundle.putString("DOWNLOAD_STATUS_BROADCAST", state.toString())
+        bundle.putInt("position", position)
+        bundle.putString("state", state.toString())
         intent.putExtras(bundle)
         sendBroadcast(intent)
     }

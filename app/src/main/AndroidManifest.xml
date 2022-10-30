@@ -34,11 +34,19 @@
 
         <service android:name=".services.DownloadService" />
 
-        <receiver android:name=".services.DownloadStatusReceiver" android:exported="false">
+        <receiver android:name=".services.StatusBroadcastReceiver" android:exported="false">
             <intent-filter>
-                <action android:name="DOWNLOAD_STATUS_BROADCAST" />
+                <action android:name="UPDATE_POSITION" />
+                <action android:name="UPDATE_STATE" />
             </intent-filter>
         </receiver>
+
+<!--        <receiver android:name=".ui.MainActivity$StatusBroadcastReceiver" android:exported="false">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="UPDATE_POSITION" />-->
+<!--                <action android:name="UPDATE_STATE" />-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
 
     </application>
 
