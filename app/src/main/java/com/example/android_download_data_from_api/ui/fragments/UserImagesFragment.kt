@@ -13,7 +13,7 @@ import android.widget.TextView
 import androidx.core.graphics.drawable.toDrawable
 import androidx.fragment.app.Fragment
 import com.example.android_download_data_from_api.R
-import com.example.android_download_data_from_api.common.adapters.GridAdapter
+import com.example.android_download_data_from_api.adapters.GridAdapter
 import com.example.android_download_data_from_api.models.ImageFromPath
 import java.io.File
 
@@ -39,6 +39,7 @@ class UserImagesFragment : Fragment() {
 
         requireActivity().title = "Info"
         setupGridAdapter(view)
+
         setupPhotoList()
     }
 
@@ -50,8 +51,8 @@ class UserImagesFragment : Fragment() {
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun setupPhotoList() {
         for ((index, i) in (0 until 8).withIndex()) {
-            val path = this.arguments?.getString("message")
-            val imgFile = File("/storage/emulated/0/Download/$path/$path.jpg")
+            val path = this.arguments?.getString("message")+this.arguments?.getString("photoID")
+            val imgFile = File("/storage/emulated/0/Download/$path/$path-$index.jpg")
             val fileName = imgFile.name ?: "unknown"
 
             if (imgFile.exists()) {

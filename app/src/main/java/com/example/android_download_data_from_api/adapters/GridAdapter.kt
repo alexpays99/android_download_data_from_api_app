@@ -1,4 +1,4 @@
-package com.example.android_download_data_from_api.common.adapters
+package com.example.android_download_data_from_api.adapters
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -46,5 +46,9 @@ class GridAdapter(private var list: MutableList<ImageFromPath>, private var cont
         imageTitle.setText(list[position].title)
 
         return convertView
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return position
     }
 }

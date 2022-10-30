@@ -7,18 +7,10 @@ import android.content.Intent
 import android.net.Uri
 import android.os.*
 import android.util.Log
-import android.widget.Toast
-import com.example.android_download_data_from_api.BuildConfig
-import com.example.android_download_data_from_api.common.adapters.OnBindInterface
-import com.example.android_download_data_from_api.interfaces.RetrofitApiCallInterface
-import com.example.android_download_data_from_api.models.Photo
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import com.example.android_download_data_from_api.general.ItemStatus
 import java.io.File
 
-class DownloadService: Service() {
+class DownloadService : Service() {
     private val binder = CustomBinder()
 
     inner class CustomBinder : Binder() {
@@ -40,14 +32,33 @@ class DownloadService: Service() {
 
     override fun onDestroy() {
         println("onDestroy() method is called")
-        stopSelf()
         super.onDestroy()
+        stopSelf()
         println("SERVICE HAS BEEN DESTROYED")
+    }
+
+    fun setState(position: Int, state: ItemStatus) {
+        val intent = Intent("UPDATE_STATE")
+        val bundle = Bundle()
+        bundle.putInt("position", position)
+        bundle.putString("state", state.toString())
+        intent.putExtras(bundle)
+        sendBroadcast(intent)
     }
 
     fun startDownloading(fileName: String, imageUrl: String) {
         try {
-            val downloadManager: DownloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val direct = File(
+                Environment.getExternalStorageDirectory()
+                    .toString() + "/dhaval_files/$fileName"
+            )
+
+            if (!direct.exists()) {
+                direct.mkdirs()
+            }
+
+            val downloadManager: DownloadManager =
+                getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             val downloadUrl = Uri.parse(imageUrl)
             val request: DownloadManager.Request = DownloadManager.Request(downloadUrl)
 
@@ -55,16 +66,16 @@ class DownloadService: Service() {
                 .setAllowedOverRoaming(false)
                 .setTitle("Downloading: $fileName")
                 .setDescription("Downloading img...")
-                .setMimeType("image/jpeg").setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, File.separator+fileName+".jpg")
+                .setMimeType("image/jpeg")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(
+                    Environment.DIRECTORY_DOWNLOADS,
+                    File.separator + fileName + File.separator + fileName + ".jpg"
+                )
 
             downloadManager.enqueue(request)
 
-            val handler = Handler(Looper.getMainLooper())
-            handler.post {
-                Toast.makeText(this, "Image downloaded", Toast.LENGTH_SHORT).show()
-            }
-
+            stopSelf()
         } catch (e: Exception) {
             Log.d("DOWNLOADING ERROR: ", "Downloading has been stopped, exception: $e")
         }
