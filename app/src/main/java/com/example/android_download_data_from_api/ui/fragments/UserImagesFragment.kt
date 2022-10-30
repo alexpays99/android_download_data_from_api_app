@@ -22,6 +22,7 @@ class UserImagesFragment : Fragment() {
     private var photoList = mutableListOf<ImageFromPath>()
     private lateinit var title: TextView
     private lateinit var gridView: GridView
+    val path = this.arguments?.getString("message")+this.arguments?.getString("photoID")
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,28 +46,28 @@ class UserImagesFragment : Fragment() {
 
     private fun setupGridAdapter(view: View) {
         gridView = view.findViewById(R.id.grid)
-        gridView.adapter = GridAdapter(photoList, requireActivity())
+        gridView.adapter = GridAdapter(photoList, path, requireActivity())
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun setupPhotoList() {
         for ((index, i) in (0 until 8).withIndex()) {
             val path = this.arguments?.getString("message")+this.arguments?.getString("photoID")
-            val imgFile = File("/storage/emulated/0/Download/$path/$path-$index.jpg")
+            val imgFile = File("/storage/emulated/0/Download/$path.jpg")
             val fileName = imgFile.name ?: "unknown"
 
             if (imgFile.exists()) {
                 try {
                     val myBitmap = BitmapFactory.decodeFile(imgFile.absolutePath)
                     val img: Drawable = myBitmap.toDrawable(resources)
-                    photoList.add(ImageFromPath(img, fileName))
+                    photoList.add(ImageFromPath(path, img, fileName))
                     Log.d("LIST OF PHOTOS:", "${photoList[index]}")
                 } catch (e: Error) {
                     Log.d("FETCHING FROM GALLERY:", "Error while fetching image, $e")
                 }
             } else {
                 val res = getResources().getDrawable(R.drawable.ic_launcher_background)
-                photoList.add(ImageFromPath(res, fileName))
+                photoList.add(ImageFromPath(path, res, fileName))
             }
         }
     }

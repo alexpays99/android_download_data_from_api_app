@@ -38,6 +38,7 @@ import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
     private var userList = mutableListOf<Photo>()
+    private var dataList = mutableListOf<Photo>()
     private lateinit var recyclerAdapter: UserListAdapter
     private lateinit var binding: ActivityMainBinding
     private val statusReceiver = StatusBroadcastReceiver()
@@ -52,8 +53,10 @@ class MainActivity : AppCompatActivity() {
             val position = intent.extras!!.getInt("position")
             val state = intent.extras!!.getString("state")
 
-            if (state != null) {
-                recyclerAdapter.updateItemState(position, ItemStatus.valueOf(state))
+            if (intent.getAction().equals("UPDATE_STATE")) {
+                if (state != null) {
+                    recyclerAdapter.updateItemState(position, ItemStatus.valueOf(state))
+                }
             }
         }
     }
@@ -98,11 +101,11 @@ class MainActivity : AppCompatActivity() {
                 println("SERVICE HAS BINDED")
 
                 downloadService?.setState(position, ItemStatus.IN_QUEUE)
-                Log.d("IN_QUEUE:", "Thread: ${currentThread().name}")
+                Log.d("IN_QUEUE:", "$position, Thread: ${currentThread().name}")
 
                 downloadImageTask = Runnable {
                     downloadService?.setState(position, ItemStatus.IN_PROGRESS)
-                    Log.d("IN_PROGRESS:", "Thread: ${currentThread().name}")
+                    Log.d("IN_PROGRESS:", "$position, Thread: ${currentThread().name}")
 
                     Thread.sleep(5000)
 
@@ -131,7 +134,7 @@ class MainActivity : AppCompatActivity() {
                         )
                     }
                     downloadService?.setState(position, ItemStatus.DOWNLOADED)
-                    Log.d("DOWNLOADED:", "Thread: ${currentThread().name}")
+                    Log.d("DOWNLOADED:", "$position, Thread: ${currentThread().name}")
                 }
                 executorService.submit(downloadImageTask)
             }
@@ -154,8 +157,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onQueryTextChange(newText: String): Boolean {
-                userList.clear()
+//                userList.clear()
                 makeRequest(newText)
+//                Thread.sleep(1000)
                 return false
             }
         })

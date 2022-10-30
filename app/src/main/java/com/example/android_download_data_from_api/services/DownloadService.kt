@@ -48,9 +48,13 @@ class DownloadService : Service() {
 
     fun startDownloading(fileName: String, imageUrl: String) {
         try {
+//            val direct = File(
+//                Environment.getExternalStorageDirectory()
+//                    .toString() + "/dhaval_files/$fileName"
+//            )
             val direct = File(
                 Environment.getExternalStorageDirectory()
-                    .toString() + "/dhaval_files/$fileName"
+                    .toString() + "/dhaval_files/"
             )
 
             if (!direct.exists()) {
@@ -68,9 +72,12 @@ class DownloadService : Service() {
                 .setDescription("Downloading img...")
                 .setMimeType("image/jpeg")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+//                .setDestinationInExternalPublicDir(
+//                    Environment.DIRECTORY_DOWNLOADS,
+//                    File.separator + fileName + File.separator + fileName + ".jpg"
                 .setDestinationInExternalPublicDir(
                     Environment.DIRECTORY_DOWNLOADS,
-                    File.separator + fileName + File.separator + fileName + ".jpg"
+                    File.separator + fileName + ".jpg"
                 )
 
             downloadManager.enqueue(request)
