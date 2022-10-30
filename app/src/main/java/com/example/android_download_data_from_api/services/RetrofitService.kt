@@ -1,6 +1,8 @@
 package com.example.android_download_data_from_api.services
 
 import com.example.android_download_data_from_api.BuildConfig
+import com.example.android_download_data_from_api.general.Constants
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -18,7 +20,13 @@ object RetrofitService {
             if (BuildConfig.DEBUG) {
                 logginInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
             }
-            client.addInterceptor(logginInterceptor)
+//            client.addInterceptor(logginInterceptor)
+            client.addInterceptor(Interceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("Authorization", Constants().API_KEY).build()
+                )
+            })
 
             retrofit = Retrofit.Builder()
                 .client(client.build())

@@ -47,4 +47,8 @@ class GridAdapter(private var list: MutableList<ImageFromPath>, private var cont
 
         return convertView
     }
+
+    override fun getItemViewType(position: Int): Int {
+        return position
+    }
 }

@@ -51,8 +51,8 @@ class UserImagesFragment : Fragment() {
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun setupPhotoList() {
         for ((index, i) in (0 until 8).withIndex()) {
-            val path = this.arguments?.getString("message")+this.arguments?.getString("photographerID")
-            val imgFile = File("/storage/emulated/0/Download/$path/$path.jpg")
+            val path = this.arguments?.getString("message")+this.arguments?.getString("photoID")
+            val imgFile = File("/storage/emulated/0/Download/$path/$path-$index.jpg")
             val fileName = imgFile.name ?: "unknown"
 
             if (imgFile.exists()) {
