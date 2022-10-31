@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -22,7 +24,7 @@ class UserImagesFragment : Fragment() {
     private var photoList = mutableListOf<ImageFromPath>()
     private lateinit var title: TextView
     private lateinit var gridView: GridView
-    val path = this.arguments?.getString("message")+this.arguments?.getString("photoID")
+    val path = this.arguments?.getString("message") + this.arguments?.getString("photoID")
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,28 +48,36 @@ class UserImagesFragment : Fragment() {
 
     private fun setupGridAdapter(view: View) {
         gridView = view.findViewById(R.id.grid)
-        gridView.adapter = GridAdapter(photoList, path, requireActivity())
+        gridView.adapter = GridAdapter(photoList, requireActivity())
     }
 
+    // TODO - FIX CRASHING APP AFTER TAPPING ON ITEM WITH A WEIGHT IMAGE SIZE
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun setupPhotoList() {
         for ((index, i) in (0 until 8).withIndex()) {
-            val path = this.arguments?.getString("message")+this.arguments?.getString("photoID")
-            val imgFile = File("/storage/emulated/0/Download/$path.jpg")
+            val path = this.arguments?.getString("message") + this.arguments?.getString("photoID")
+            val num = if (i == 0) {
+                path
+            } else {
+                "$path-$i"
+            }
+
+            val fullPath = "/storage/emulated/0/Download/$path/$num.jpg"
+            val imgFile = File(fullPath)
             val fileName = imgFile.name ?: "unknown"
 
             if (imgFile.exists()) {
                 try {
                     val myBitmap = BitmapFactory.decodeFile(imgFile.absolutePath)
                     val img: Drawable = myBitmap.toDrawable(resources)
-                    photoList.add(ImageFromPath(path, img, fileName))
+                    photoList.add(ImageFromPath(fullPath, img, fileName))
                     Log.d("LIST OF PHOTOS:", "${photoList[index]}")
                 } catch (e: Error) {
                     Log.d("FETCHING FROM GALLERY:", "Error while fetching image, $e")
                 }
             } else {
                 val res = getResources().getDrawable(R.drawable.ic_launcher_background)
-                photoList.add(ImageFromPath(path, res, fileName))
+                photoList.add(ImageFromPath(fullPath, res, fileName))
             }
         }
     }

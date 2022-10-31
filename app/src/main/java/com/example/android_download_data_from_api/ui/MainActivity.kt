@@ -157,9 +157,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onQueryTextChange(newText: String): Boolean {
-//                userList.clear()
                 makeRequest(newText)
-//                Thread.sleep(1000)
                 return false
             }
         })

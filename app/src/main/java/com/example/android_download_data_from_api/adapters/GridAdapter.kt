@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,8 +14,9 @@ import android.widget.TextView
 import androidx.core.graphics.drawable.toDrawable
 import com.example.android_download_data_from_api.models.ImageFromPath
 import java.io.File
+import java.io.IOException
 
-class GridAdapter(private var list: MutableList<ImageFromPath>, path: String, private var context: Context): BaseAdapter() {
+open class GridAdapter(private var list: MutableList<ImageFromPath>, private var context: Context): BaseAdapter() {
     private var layoutInflater: LayoutInflater? = null
     private lateinit var imageView: ImageView
     private lateinit var imageTitle: TextView
@@ -47,23 +49,22 @@ class GridAdapter(private var list: MutableList<ImageFromPath>, path: String, pr
         imageView = convertView!!.findViewById(com.example.android_download_data_from_api.R.id.imageView)
         imageTitle = convertView.findViewById(com.example.android_download_data_from_api.R.id.imageTitle)
 
-        var imageFile = File(currentItem.imgPath)
-        if (imageFile.exists()) {
-            var bitmap = BitmapFactory.Options().run {
-                inJustDecodeBounds = true
-                BitmapFactory.decodeFile(imageFile.absolutePath, this)
-                inSampleSize = calculateInSampleSize(this, 400, 400)
-                inJustDecodeBounds = false
-                BitmapFactory.decodeFile(imageFile.absolutePath, this)
+        val imageFile = File(currentItem.imgPath)
+        try {
+            if (imageFile.exists()) {
+                val bitmap = BitmapFactory.Options().run {
+                    inJustDecodeBounds = true
+                    BitmapFactory.decodeFile(imageFile.absolutePath, this)
+                    inSampleSize = calculateInSampleSize(this, 200, 200)
+                    inJustDecodeBounds = false
+                    BitmapFactory.decodeFile(imageFile.absolutePath, this)
+                }
+                imageView.setImageBitmap(bitmap)
+                imageTitle.setText(list[position].title)
             }
-//            val img: Drawable = bitmap.toDrawable(context.resources)
-//            imageView.setImageDrawable(img)
-            imageView.setImageBitmap(bitmap)
-            imageTitle.setText(list[position].title)
+        } catch (e: IOException) {
+            e.printStackTrace();
         }
-
-        imageView.setImageDrawable(list[position].img)
-        imageTitle.setText(list[position].title)
 
         return convertView
     }
