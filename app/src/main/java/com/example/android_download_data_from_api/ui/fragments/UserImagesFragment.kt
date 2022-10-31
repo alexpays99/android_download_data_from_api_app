@@ -19,7 +19,6 @@ import com.example.android_download_data_from_api.adapters.GridAdapter
 import com.example.android_download_data_from_api.models.ImageFromPath
 import java.io.File
 
-
 class UserImagesFragment : Fragment() {
     private var photoList = mutableListOf<ImageFromPath>()
     private lateinit var title: TextView
@@ -51,7 +50,6 @@ class UserImagesFragment : Fragment() {
         gridView.adapter = GridAdapter(photoList, requireActivity())
     }
 
-    // TODO - FIX CRASHING APP AFTER TAPPING ON ITEM WITH A WEIGHT IMAGE SIZE
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun setupPhotoList() {
         for ((index, i) in (0 until 8).withIndex()) {

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.*
 import android.util.Log
+import com.example.android_download_data_from_api.general.Constants
 import com.example.android_download_data_from_api.general.ItemStatus
 import java.io.File
 
@@ -38,10 +39,10 @@ class DownloadService : Service() {
     }
 
     fun setState(position: Int, state: ItemStatus) {
-        val intent = Intent("UPDATE_STATE")
+        val intent = Intent(Constants().UPDATE_STATE_ACTION)
         val bundle = Bundle()
-        bundle.putInt("position", position)
-        bundle.putString("state", state.toString())
+        bundle.putInt(Constants().position, position)
+        bundle.putString(Constants().state, state.toString())
         intent.putExtras(bundle)
         sendBroadcast(intent)
     }

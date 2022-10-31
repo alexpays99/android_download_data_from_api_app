@@ -19,6 +19,7 @@ import com.example.android_download_data_from_api.general.Common
 import com.example.android_download_data_from_api.general.ItemStatus
 import com.example.android_download_data_from_api.adapters.UserListAdapter
 import com.example.android_download_data_from_api.databinding.ActivityMainBinding
+import com.example.android_download_data_from_api.general.Constants
 import com.example.android_download_data_from_api.interfaces.OnBindInterface
 import com.example.android_download_data_from_api.interfaces.OnDownloadImageInterface
 import com.example.android_download_data_from_api.models.Photo
@@ -38,7 +39,6 @@ import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
     private var userList = mutableListOf<Photo>()
-    private var dataList = mutableListOf<Photo>()
     private lateinit var recyclerAdapter: UserListAdapter
     private lateinit var binding: ActivityMainBinding
     private val statusReceiver = StatusBroadcastReceiver()
@@ -50,10 +50,10 @@ class MainActivity : AppCompatActivity() {
     inner class StatusBroadcastReceiver : BroadcastReceiver() {
 
         override fun onReceive(context: Context?, intent: Intent) {
-            val position = intent.extras!!.getInt("position")
-            val state = intent.extras!!.getString("state")
+            val position = intent.extras!!.getInt(Constants().position)
+            val state = intent.extras!!.getString(Constants().state)
 
-            if (intent.getAction().equals("UPDATE_STATE")) {
+            if (intent.getAction().equals(Constants().UPDATE_STATE_ACTION)) {
                 if (state != null) {
                     recyclerAdapter.updateItemState(position, ItemStatus.valueOf(state))
                 }
@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val intentFilter = IntentFilter("UPDATE_STATE")
+        val intentFilter = IntentFilter(Constants().UPDATE_STATE_ACTION)
         registerReceiver(statusReceiver, intentFilter)
 
         setupRecyclerAdapter()
