@@ -20,7 +20,7 @@ object RetrofitService {
             if (BuildConfig.DEBUG) {
                 logginInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
             }
-//            client.addInterceptor(logginInterceptor)
+
             client.addInterceptor(Interceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()

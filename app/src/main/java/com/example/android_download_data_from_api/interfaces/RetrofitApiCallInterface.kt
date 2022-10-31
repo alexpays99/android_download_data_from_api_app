@@ -9,7 +9,6 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface RetrofitApiCallInterface {
-//    @Headers("Authorization: 563492ad6f917000010000011945fca391db4d96a355ae650e64f721")
     @GET("search")
     fun getUsers(@Query(value = "query", encoded = true) query: String): Call<User>
 }
