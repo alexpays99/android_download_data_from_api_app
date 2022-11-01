@@ -8,48 +8,51 @@ import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
-import android.os.Binder
-import android.os.Bundle
-import android.os.Environment
-import android.os.IBinder
+import android.os.*
 import android.util.Log
 import com.example.android_download_data_from_api.general.Constants
 import com.example.android_download_data_from_api.general.ItemStatus
 import com.example.android_download_data_from_api.models.DownloadStatus
+import com.example.android_download_data_from_api.models.Photo
 import java.io.File
+import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.schedule
 import kotlin.math.roundToInt
+
+interface ReceiveDataInerface {
+    fun onReCeiveData(position: Int, state: ItemStatus)
+}
 
 class DownloadBroadcastReceiver : BroadcastReceiver() {
     //    var incrementCounterCallback: ((counter: Int) -> Unit)? = null
-    var onDownloadComplete: ((position: Int, state: ItemStatus) -> Unit)? = null
+//    var onDownloadComplete: ((position: Int, state: ItemStatus) -> Unit)? = null
+
+    private lateinit var onDownloadCompleteCallback: ReceiveDataInerface
+
+    fun setButtonStateCallback(callback: ReceiveDataInerface) {
+        this.onDownloadCompleteCallback = callback
+    }
 
     override fun onReceive(context: Context?, intent: Intent) {
         val position = intent.extras!!.getInt(Constants.shared.position)
         val state = intent.extras!!.getString(Constants.shared.state)
 
-        val randomId = intent.extras!!.getString("randomID")
-        val downloadId = intent.extras!!.getLong(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-        val counter = intent.extras!!.getInt(Constants.shared.counter)
-        val map = mutableMapOf(downloadId to counter)
-
-        if (intent.action.equals(Constants.shared.DOWNLOAD_COMPLETE_ACTION)) {
-            map.put(downloadId, counter)
-            Log.d("COUNTER MAP:", "$map")
-
-            if (map[downloadId] == 7) {
-                onDownloadComplete?.invoke(
-                    position,
-                    ItemStatus.valueOf(ItemStatus.DOWNLOADED.toString())
-                )
-            }
+        if (state != null) {
+            onDownloadCompleteCallback.onReCeiveData(position, ItemStatus.valueOf(state))
         }
     }
 }
 
 class DownloadService : Service() {
     private val binder = CustomBinder()
-    private val map = mutableMapOf(0 to 0)
-    var downloadCounter = 0
+    private var executorService: ExecutorService = Executors.newFixedThreadPool(3)
+    private lateinit var downloadImageTask: Runnable
+    var downloadCounter = AtomicInteger(0)
+    private lateinit var timer: Timer
+    private var map = mutableMapOf<Int, DownloadStatus>()
 
     inner class CustomBinder : Binder() {
         fun getService(): DownloadService = this@DownloadService
@@ -84,29 +87,49 @@ class DownloadService : Service() {
         sendBroadcast(intent)
     }
 
-    fun setDownloadId(randomID: String, id: Long, counter: Int) {
-        val intent = Intent(Constants.shared.DOWNLOAD_COMPLETE_ACTION)
-        val bundle = Bundle()
-        bundle.putString("randomID", randomID)
-        bundle.putLong(Constants.shared.id, id)
-        bundle.putInt(Constants.shared.counter, counter)
-        intent.putExtras(bundle)
+    fun startBroadcast(position: Int, state: ItemStatus?, id: Int) {
+        val intent = Intent(Constants.shared.UPDATE_STATE_ACTION)
+        intent.putExtra(Constants.shared.state, state)
+        intent.putExtra(Constants.shared.position, position)
+        intent.putExtra(Constants.shared.photoId, id)
         sendBroadcast(intent)
     }
 
-    private fun getRandomString(): String {
-        val allowedChars = ('A'..'Z') + ('a'..'z') + ('0'..'9')
-        var string = ""
-        for (i in (1..20)) {
-            string += allowedChars[(Math.random() * (allowedChars.size - 1)).roundToInt()]
+    fun executionTask(position: Int, photo: Photo) {
+        downloadImageTask = Runnable {
+            Log.d("IN_PROGRESS:", "$position, Thread: ${Thread.currentThread().name}")
+
+            val usrArr: ArrayList<String> = ArrayList()
+            usrArr.add(photo.src.original)
+            usrArr.add(photo.src.large2X)
+            usrArr.add(photo.src.large)
+            usrArr.add(photo.src.medium)
+            usrArr.add(photo.src.small)
+            usrArr.add(photo.src.portrait)
+            usrArr.add(photo.src.landscape)
+            usrArr.add(photo.src.tiny)
+
+            for ((index, i) in (0 until usrArr.size).withIndex()) {
+                val url = usrArr[index]
+                startDownloading(photo.photographer.toString() + photo.id, url, photo)
+            }
+
+            Thread.sleep(5000)
+            downloadCounter.decrementAndGet()
+            map.remove(photo.id.toInt())
+            startBroadcast(position, ItemStatus.DOWNLOADED, photo.id.toInt())
+            if(downloadCounter.get() == 0) {
+                stopSelf()
+            }
         }
-        return string
+        downloadCounter.incrementAndGet()
+        photo.state = ItemStatus.IN_QUEUE
+        map[photo.id.toInt()] = DownloadStatus(position, photo)
+        executorService.submit(downloadImageTask)
     }
 
     @SuppressLint("Range")
-    fun startDownloading(fileName: String, imageUrl: String): Boolean {
-        var downloadID: Long = 0
-//        var downloadCounter = 0
+    fun startDownloading(fileName: String, imageUrl: String, photo: Photo) {
         try {
             val direct = File(
                 Environment.getExternalStorageDirectory()
@@ -122,6 +145,8 @@ class DownloadService : Service() {
             val downloadUrl = Uri.parse(imageUrl)
             val request: DownloadManager.Request = DownloadManager.Request(downloadUrl)
 
+            map[photo.id.toInt()]!!.photo.state = ItemStatus.IN_PROGRESS
+
             request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
                 .setAllowedOverRoaming(false)
                 .setTitle("Downloading: $fileName")
@@ -133,38 +158,17 @@ class DownloadService : Service() {
                     File.separator + fileName + File.separator + fileName + ".jpg"
                 )
 
-            downloadID = downloadManager.enqueue(request)
-            Log.d("DOWNLOAD ID", "Checking download status for id: $downloadID")
+            downloadManager.enqueue(request)
 
-            //Verify if download is a success
-            val c: Cursor = downloadManager.query(DownloadManager.Query().setFilterById(downloadID))
-
-            if (c.moveToFirst()) {
-                val status = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS))
-                return if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                    downloadCounter++
-                    setDownloadId(getRandomString(), downloadID, downloadCounter)
-                    if (downloadCounter == 8) {
-                        downloadCounter = 0
-                    }
-                    true //Download is valid, celebrate
-                } else {
-                    val reason = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_REASON))
-                    Log.d(
-                        "DOWNLOAD ERROR",
-                        "Download not correct, status [$status] reason [$reason]"
-                    )
-                    false
-                }
-            }
-
-//            downloadCounter++
-//            setDownloadId(downloadID, downloadCounter)
             stopSelf()
         } catch (e: Exception) {
             Log.d("DOWNLOADING ERROR: ", "Downloading has been stopped, exception: $e")
+            map[photo.id.toInt()]!!.photo.state = ItemStatus.DEFAULT
+            Handler(Looper.getMainLooper()).post {
+                timer.cancel()
+                stopSelf()
+            }
         }
-        return false
     }
 
     fun dispose() {

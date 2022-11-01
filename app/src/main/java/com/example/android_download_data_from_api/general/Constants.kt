@@ -13,6 +13,7 @@ class Constants {
     val DOWNLOAD_COMPLETE_ACTION = DownloadManager.ACTION_DOWNLOAD_COMPLETE
     val position = "position"
     val state = "state"
-    val id = "id"
+    val photo = "photo"
+    val photoId = "photoId"
     val counter = "counter"
 }

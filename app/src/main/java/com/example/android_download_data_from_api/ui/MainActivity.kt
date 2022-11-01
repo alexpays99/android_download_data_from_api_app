@@ -27,6 +27,7 @@ import com.example.android_download_data_from_api.models.Photo
 import com.example.android_download_data_from_api.models.User
 import com.example.android_download_data_from_api.services.DownloadBroadcastReceiver
 import com.example.android_download_data_from_api.services.DownloadService
+import com.example.android_download_data_from_api.services.ReceiveDataInerface
 import com.example.android_download_data_from_api.ui.fragments.UserImagesFragment
 import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
@@ -68,13 +69,19 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        downloadReceiver.setButtonStateCallback(object : ReceiveDataInerface {
+            override fun onReCeiveData(position: Int, state: ItemStatus) {
+                recyclerAdapter.updateItemState(position, state)
+            }
+        })
+
         registerBroadcasts()
         setupRecyclerAdapter()
     }
 
     private fun registerBroadcasts() {
-        val statusIntentFilter = IntentFilter(Constants.shared.UPDATE_STATE_ACTION)
-        registerReceiver(statusReceiver, statusIntentFilter)
+//        val statusIntentFilter = IntentFilter(Constants.shared.UPDATE_STATE_ACTION)
+//        registerReceiver(statusReceiver, statusIntentFilter)
         val downloadCompleteIntentFilter = IntentFilter(Constants.shared.DOWNLOAD_COMPLETE_ACTION)
         registerReceiver(downloadReceiver, downloadCompleteIntentFilter)
     }
@@ -107,48 +114,40 @@ class MainActivity : AppCompatActivity() {
                 bindService(downloadServiceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 println("SERVICE HAS BINDED")
 
-                downloadService?.setState(position, ItemStatus.IN_QUEUE)
-                Log.d("IN_QUEUE:", "$position, Thread: ${currentThread().name}")
+//                downloadService?.setState(position, ItemStatus.IN_QUEUE)
+//                Log.d("IN_QUEUE:", "$position, Thread: ${currentThread().name}")
 
-                downloadImageTask = Runnable {
-                    var counter: Int = 0
-                    downloadService?.setState(position, ItemStatus.IN_PROGRESS)
-                    Log.d("IN_PROGRESS:", "$position, Thread: ${currentThread().name}")
+                downloadService?.startBroadcast(position,photo.state,photo.id.toInt())
+                downloadService?.executionTask(position, photo)
 
-                    Thread.sleep(5000)
-
-                    val usrArr: ArrayList<String> = ArrayList()
-                    usrArr.add(photo.src.original)
-                    usrArr.add(photo.src.large2X)
-                    usrArr.add(photo.src.large)
-                    usrArr.add(photo.src.medium)
-                    usrArr.add(photo.src.small)
-                    usrArr.add(photo.src.portrait)
-                    usrArr.add(photo.src.landscape)
-                    usrArr.add(photo.src.tiny)
-
-                    for ((index, i) in (0 until usrArr.size).withIndex()) {
-                        val url = usrArr[index]
-                        downloadService?.startDownloading(
-                            photo.photographer.toString() + photo.id,
-                            url
-                        )
-                        Log.d(
-                            "DOWNLOADING IN THREAD:",
-                            "startDownloading()," +
-                                    "${photo.photographer}, " +
-                                    "Thread: ${currentThread().name}" +
-                                    "Thread: ${currentThread().state}"
-                        )
-//                        counter = index
-//                        Log.d("COUNTER:", "$counter")
-//                        downloadService?.setDownloadCounter(counter)
-                    }
-                    downloadReceiver.onDownloadComplete = { position, state ->
-                        downloadService?.setState(position, state)
-                    }
-                }
-                executorService.submit(downloadImageTask)
+//                downloadImageTask = Runnable {
+//                    downloadService?.setState(position, ItemStatus.IN_PROGRESS)
+//                    Log.d("IN_PROGRESS:", "$position, Thread: ${currentThread().name}")
+//
+//                    Thread.sleep(5000)
+//
+//                    val usrArr: ArrayList<String> = ArrayList()
+//                    usrArr.add(photo.src.original)
+//                    usrArr.add(photo.src.large2X)
+//                    usrArr.add(photo.src.large)
+//                    usrArr.add(photo.src.medium)
+//                    usrArr.add(photo.src.small)
+//                    usrArr.add(photo.src.portrait)
+//                    usrArr.add(photo.src.landscape)
+//                    usrArr.add(photo.src.tiny)
+//
+//                    for ((index, i) in (0 until usrArr.size).withIndex()) {
+//                        val url = usrArr[index]
+//                        downloadService?.startDownloading(
+//                            photo.photographer.toString() + photo.id,
+//                            url
+//                        )
+//                    }
+////                    downloadReceiver.onDownloadComplete = { position, state ->
+////                        downloadService?.setState(position, state)
+////                    }
+//                }
+//                executorService.submit(downloadImageTask)
             }
         })
     }
