@@ -1,6 +1,7 @@
 package com.example.android_download_data_from_api.ui
 
 import android.annotation.SuppressLint
+import android.app.DownloadManager
 import android.content.*
 import android.os.Bundle
 import android.os.Handler
@@ -15,14 +16,16 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
-import com.example.android_download_data_from_api.general.Common
-import com.example.android_download_data_from_api.general.ItemStatus
 import com.example.android_download_data_from_api.adapters.UserListAdapter
 import com.example.android_download_data_from_api.databinding.ActivityMainBinding
+import com.example.android_download_data_from_api.general.Common
+import com.example.android_download_data_from_api.general.Constants
+import com.example.android_download_data_from_api.general.ItemStatus
 import com.example.android_download_data_from_api.interfaces.OnBindInterface
 import com.example.android_download_data_from_api.interfaces.OnDownloadImageInterface
 import com.example.android_download_data_from_api.models.Photo
 import com.example.android_download_data_from_api.models.User
+import com.example.android_download_data_from_api.services.DownloadBroadcastReceiver
 import com.example.android_download_data_from_api.services.DownloadService
 import com.example.android_download_data_from_api.ui.fragments.UserImagesFragment
 import kotlinx.android.synthetic.main.activity_main.*
@@ -34,14 +37,13 @@ import java.lang.Thread.currentThread
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
     private var userList = mutableListOf<Photo>()
-    private var dataList = mutableListOf<Photo>()
     private lateinit var recyclerAdapter: UserListAdapter
     private lateinit var binding: ActivityMainBinding
     private val statusReceiver = StatusBroadcastReceiver()
+    private val downloadReceiver = DownloadBroadcastReceiver()
     private var downloadService: DownloadService? = null
     private var executorService: ExecutorService = Executors.newFixedThreadPool(3)
     private lateinit var downloadImageTask: Runnable
@@ -50,10 +52,10 @@ class MainActivity : AppCompatActivity() {
     inner class StatusBroadcastReceiver : BroadcastReceiver() {
 
         override fun onReceive(context: Context?, intent: Intent) {
-            val position = intent.extras!!.getInt("position")
-            val state = intent.extras!!.getString("state")
+            val position = intent.extras!!.getInt(Constants.shared.position)
+            val state = intent.extras!!.getString(Constants.shared.state)
 
-            if (intent.getAction().equals("UPDATE_STATE")) {
+            if (intent.action.equals(Constants.shared.UPDATE_STATE_ACTION)) {
                 if (state != null) {
                     recyclerAdapter.updateItemState(position, ItemStatus.valueOf(state))
                 }
@@ -66,10 +68,15 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val intentFilter = IntentFilter("UPDATE_STATE")
-        registerReceiver(statusReceiver, intentFilter)
-
+        registerBroadcasts()
         setupRecyclerAdapter()
+    }
+
+    private fun registerBroadcasts() {
+        val statusIntentFilter = IntentFilter(Constants.shared.UPDATE_STATE_ACTION)
+        registerReceiver(statusReceiver, statusIntentFilter)
+        val downloadCompleteIntentFilter = IntentFilter(Constants.shared.DOWNLOAD_COMPLETE_ACTION)
+        registerReceiver(downloadReceiver, downloadCompleteIntentFilter)
     }
 
     private fun setupRecyclerAdapter() {
@@ -104,6 +111,7 @@ class MainActivity : AppCompatActivity() {
                 Log.d("IN_QUEUE:", "$position, Thread: ${currentThread().name}")
 
                 downloadImageTask = Runnable {
+                    var counter: Int = 0
                     downloadService?.setState(position, ItemStatus.IN_PROGRESS)
                     Log.d("IN_PROGRESS:", "$position, Thread: ${currentThread().name}")
 
@@ -132,9 +140,13 @@ class MainActivity : AppCompatActivity() {
                                     "Thread: ${currentThread().name}" +
                                     "Thread: ${currentThread().state}"
                         )
+//                        counter = index
+//                        Log.d("COUNTER:", "$counter")
+//                        downloadService?.setDownloadCounter(counter)
                     }
-                    downloadService?.setState(position, ItemStatus.DOWNLOADED)
-                    Log.d("DOWNLOADED:", "$position, Thread: ${currentThread().name}")
+                    downloadReceiver.onDownloadComplete = { position, state ->
+                        downloadService?.setState(position, state)
+                    }
                 }
                 executorService.submit(downloadImageTask)
             }
@@ -220,14 +232,13 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         println("onStart method has been called")
         super.onStop()
-//        unbindService(serviceConnection)
-//        println("SERVICE UNBINDED")
     }
 
     override fun onDestroy() {
         Log.e("MainActivity", "${currentThread().name}, ${currentThread().state}")
-        Log.e("MainActivity", "${currentThread().name}, ${currentThread().state}")
         super.onDestroy()
+        unregisterReceiver(downloadReceiver)
+        unregisterReceiver(statusReceiver)
     }
 
     private val serviceConnection = object : ServiceConnection {
