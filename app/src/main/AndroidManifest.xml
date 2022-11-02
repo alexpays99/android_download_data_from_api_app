@@ -34,15 +34,9 @@
 
         <service android:name=".services.DownloadService" />
 
-        <receiver android:name=".ui.MainActivity$StatusBroadcastReceiver" android:exported="false">
-            <intent-filter>
-                <action android:name="UPDATE_STATE" />
-            </intent-filter>
-        </receiver>
-
         <receiver android:name=".services.DownloadBroadcastReceiver" android:exported="false">
             <intent-filter>
-                <action android:name="DOWNLOAD_COMPLETE_ACTION" />
+                <action android:name="UPDATE_STATE_ACTION" />
             </intent-filter>
         </receiver>
 

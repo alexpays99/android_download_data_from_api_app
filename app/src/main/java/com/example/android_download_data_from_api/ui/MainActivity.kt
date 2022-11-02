@@ -1,7 +1,6 @@
 package com.example.android_download_data_from_api.ui
 
 import android.annotation.SuppressLint
-import android.app.DownloadManager
 import android.content.*
 import android.os.Bundle
 import android.os.Handler
@@ -13,7 +12,6 @@ import android.view.View
 import android.view.View.GONE
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.adapters.UserListAdapter
@@ -34,34 +32,14 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 import java.lang.Thread.currentThread
-import java.util.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), java.io.Serializable {
     private var userList = mutableListOf<Photo>()
     private lateinit var recyclerAdapter: UserListAdapter
     private lateinit var binding: ActivityMainBinding
-    private val statusReceiver = StatusBroadcastReceiver()
     private val downloadReceiver = DownloadBroadcastReceiver()
     private var downloadService: DownloadService? = null
-    private var executorService: ExecutorService = Executors.newFixedThreadPool(3)
-    private lateinit var downloadImageTask: Runnable
     private var isRunning: Boolean = false
-
-    inner class StatusBroadcastReceiver : BroadcastReceiver() {
-
-        override fun onReceive(context: Context?, intent: Intent) {
-            val position = intent.extras!!.getInt(Constants.shared.position)
-            val state = intent.extras!!.getString(Constants.shared.state)
-
-            if (intent.action.equals(Constants.shared.UPDATE_STATE_ACTION)) {
-                if (state != null) {
-                    recyclerAdapter.updateItemState(position, ItemStatus.valueOf(state))
-                }
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,12 +48,13 @@ class MainActivity : AppCompatActivity() {
 
         registerBroadcasts()
         setupRecyclerAdapter()
+        downloadReceiver.onDownloadCompleteCallback = { position, state ->
+            recyclerAdapter.updateItemState(position, state)
+        }
     }
 
     private fun registerBroadcasts() {
-        val statusIntentFilter = IntentFilter(Constants.shared.UPDATE_STATE_ACTION)
-        registerReceiver(statusReceiver, statusIntentFilter)
-        val downloadCompleteIntentFilter = IntentFilter(Constants.shared.DOWNLOAD_COMPLETE_ACTION)
+        val downloadCompleteIntentFilter = IntentFilter(Constants.UPDATE_STATE_ACTION)
         registerReceiver(downloadReceiver, downloadCompleteIntentFilter)
     }
 
@@ -99,56 +78,13 @@ class MainActivity : AppCompatActivity() {
             }
         })
         recyclerAdapter.downloadImgCallback(object : OnDownloadImageInterface {
+            @SuppressLint("NotifyDataSetChanged")
             override fun onDownloadImage(photo: Photo, position: Int) {
-                // run service
-                val downloadServiceIntent = Intent(this@MainActivity, DownloadService::class.java)
-                ContextCompat.startForegroundService(this@MainActivity, intent)
-                println("SERVICE HAS STARTED")
-                bindService(downloadServiceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
-                println("SERVICE HAS BINDED")
-
-                downloadService?.setState(position, ItemStatus.IN_QUEUE)
-                Log.d("IN_QUEUE:", "$position, Thread: ${currentThread().name}")
-
-                downloadImageTask = Runnable {
-                    var counter: Int = 0
-                    downloadService?.setState(position, ItemStatus.IN_PROGRESS)
-                    Log.d("IN_PROGRESS:", "$position, Thread: ${currentThread().name}")
-
-                    Thread.sleep(5000)
-
-                    val usrArr: ArrayList<String> = ArrayList()
-                    usrArr.add(photo.src.original)
-                    usrArr.add(photo.src.large2X)
-                    usrArr.add(photo.src.large)
-                    usrArr.add(photo.src.medium)
-                    usrArr.add(photo.src.small)
-                    usrArr.add(photo.src.portrait)
-                    usrArr.add(photo.src.landscape)
-                    usrArr.add(photo.src.tiny)
-
-                    for ((index, i) in (0 until usrArr.size).withIndex()) {
-                        val url = usrArr[index]
-                        downloadService?.startDownloading(
-                            photo.photographer.toString() + photo.id,
-                            url
-                        )
-                        Log.d(
-                            "DOWNLOADING IN THREAD:",
-                            "startDownloading()," +
-                                    "${photo.photographer}, " +
-                                    "Thread: ${currentThread().name}" +
-                                    "Thread: ${currentThread().state}"
-                        )
-//                        counter = index
-//                        Log.d("COUNTER:", "$counter")
-//                        downloadService?.setDownloadCounter(counter)
-                    }
-                    downloadReceiver.onDownloadComplete = { position, state ->
-                        downloadService?.setState(position, state)
-                    }
-                }
-                executorService.submit(downloadImageTask)
+                val downloadServiceIntent= Intent(this@MainActivity, DownloadService::class.java)
+                downloadServiceIntent.putExtra(Constants.position, position)
+                downloadServiceIntent.putExtra(Constants.photo, photo)
+                Log.d("onDownloadImage() DATA:", "POSITION: $position, PHOTO: $photo")
+                startService(downloadServiceIntent)
             }
         })
     }
@@ -238,7 +174,7 @@ class MainActivity : AppCompatActivity() {
         Log.e("MainActivity", "${currentThread().name}, ${currentThread().state}")
         super.onDestroy()
         unregisterReceiver(downloadReceiver)
-        unregisterReceiver(statusReceiver)
+//        unregisterReceiver(statusReceiver)
     }
 
     private val serviceConnection = object : ServiceConnection {
