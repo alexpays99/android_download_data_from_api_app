@@ -1,6 +1,7 @@
 package com.example.android_download_data_from_api.models
 
 import com.google.gson.annotations.SerializedName
+import java.io.Serializable
 
 data class Src (
     val original: String,
@@ -12,4 +13,4 @@ data class Src (
     val portrait: String,
     val landscape: String,
     val tiny: String
-)
+) : Serializable

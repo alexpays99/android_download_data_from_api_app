@@ -46,6 +46,7 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
     fun updateItemState(position: Int, state: ItemStatus) {
         list[position].state = state
         val handler = Handler(Looper.getMainLooper())
+        Log.d("updateItemState() STATE", "STATE: ${state}")
         handler.post {
             notifyItemChanged(position)
         }
@@ -63,7 +64,6 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
 
         holder.name.text = dataPosition.photographer
         holder.name.setTextColor(Color.parseColor(dataPosition.avgColor))
-//        holder.setIsRecyclable(false)
 
         when(dataPosition.state) {
             ItemStatus.DEFAULT -> {

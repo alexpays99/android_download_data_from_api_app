@@ -3,10 +3,8 @@ package com.example.android_download_data_from_api.services
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.database.Cursor
 import android.net.Uri
 import android.os.*
 import android.util.Log
@@ -15,35 +13,12 @@ import com.example.android_download_data_from_api.general.Constants
 import com.example.android_download_data_from_api.general.ItemStatus
 import com.example.android_download_data_from_api.models.DownloadStatus
 import com.example.android_download_data_from_api.models.Photo
-import com.example.android_download_data_from_api.ui.MainActivity
 import java.io.File
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.schedule
-import kotlin.math.roundToInt
-
-interface ReceiveDataInerface {
-    fun onReCeiveData(position: Int, state: ItemStatus)
-}
-
-class DownloadBroadcastReceiver : BroadcastReceiver() {
-    private lateinit var onDownloadCompleteCallback: ReceiveDataInerface
-
-    fun setButtonStateCallback(callback: ReceiveDataInerface) {
-        this.onDownloadCompleteCallback = callback
-    }
-
-    override fun onReceive(context: Context?, intent: Intent) {
-        val position = intent.extras!!.getInt(Constants.position)
-        val state = intent.extras!!.getString(Constants.state)
-
-        if (state != null) {
-            onDownloadCompleteCallback.onReCeiveData(position, ItemStatus.valueOf(state))
-        }
-    }
-}
 
 class DownloadService : Service() {
     private val binder = CustomBinder()
@@ -71,16 +46,22 @@ class DownloadService : Service() {
         if (intent != null) {
             val photo = intent.getSerializableExtra(Constants.photo)
             val position = intent.getIntExtra(Constants.position, 0)
+            Log.d("onStartCommand() DATA:", "PHOTO: $photo, POSITION: $position") //ok
             executionTask(position, photo as Photo)
         }
         Thread {
             timer = Timer()
             timer.schedule(0, 1000) {
                 map.forEach { (key, value) ->
-                    startBroadcast(
+                    setState(
                         value.position,
-                        value.photo.state,
+                        value.photo.state!!,
                         value.photo.id.toInt()
+                    )
+                    // ok
+                    Log.d(
+                        "map.forEach DATA:",
+                        "POSITION: ${value.position}, STATE: ${value.photo.state!!}, ID: ${value.photo.id}"
                     )
                 }
                 Log.d("timer", timer.toString())
@@ -96,21 +77,17 @@ class DownloadService : Service() {
         println("SERVICE HAS BEEN DESTROYED")
     }
 
-    fun setState(position: Int, state: ItemStatus) {
+    private fun setState(position: Int?, state: ItemStatus?, id: Int?) {
         val intent = Intent(Constants.UPDATE_STATE_ACTION)
         val bundle = Bundle()
-        bundle.putInt(Constants.position, position)
-        bundle.putString(Constants.state, state.toString())
-        intent.putExtras(bundle)
-        sendBroadcast(intent)
-    }
-
-    fun startBroadcast(position: Int, state: ItemStatus?, id: Int) {
-        val intent = Intent(Constants.UPDATE_STATE_ACTION)
-        intent.putExtra(Constants.state, state)
-        intent.putExtra(Constants.position, position)
-        intent.putExtra(Constants.photoId, id)
-        sendBroadcast(intent)
+        if (position != null && state != null && id != null) {
+            bundle.putInt(Constants.position, position)
+            bundle.putString(Constants.state, state.toString())
+            bundle.putInt(Constants.photoId, id)
+            intent.putExtras(bundle)
+            Log.d("startBroadcast DATA:", "POS: $position, STATE: $state, ID: $id")
+            sendBroadcast(intent)
+        }
     }
 
     fun executionTask(position: Int, photo: Photo) {
@@ -135,7 +112,8 @@ class DownloadService : Service() {
             Thread.sleep(5000)
             downloadCounter.decrementAndGet()
             map.remove(photo.id.toInt())
-            startBroadcast(position, ItemStatus.DOWNLOADED, photo.id.toInt())
+            setState(position, ItemStatus.DOWNLOADED, photo.id.toInt())
+            Log.d("executionTask() DATA:", "POSITION: $position, PHOTO ID: ${photo.id}")
             if (downloadCounter.get() == 0) {
                 Handler(Looper.getMainLooper()).post {
                     timer.cancel()

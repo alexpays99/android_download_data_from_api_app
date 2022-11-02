@@ -12,7 +12,6 @@ import android.view.View
 import android.view.View.GONE
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.adapters.UserListAdapter
@@ -26,7 +25,6 @@ import com.example.android_download_data_from_api.models.Photo
 import com.example.android_download_data_from_api.models.User
 import com.example.android_download_data_from_api.services.DownloadBroadcastReceiver
 import com.example.android_download_data_from_api.services.DownloadService
-import com.example.android_download_data_from_api.services.ReceiveDataInerface
 import com.example.android_download_data_from_api.ui.fragments.UserImagesFragment
 import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
@@ -34,58 +32,29 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 import java.lang.Thread.currentThread
-import java.util.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity(), java.io.Serializable {
     private var userList = mutableListOf<Photo>()
     private lateinit var recyclerAdapter: UserListAdapter
     private lateinit var binding: ActivityMainBinding
-    private val statusReceiver = StatusBroadcastReceiver()
     private val downloadReceiver = DownloadBroadcastReceiver()
     private var downloadService: DownloadService? = null
     private var isRunning: Boolean = false
-
-    inner class StatusBroadcastReceiver : BroadcastReceiver() {
-
-        override fun onReceive(context: Context?, intent: Intent) {
-            val position = intent.extras!!.getInt(Constants.position)
-            val state = intent.extras!!.getString(Constants.state)
-
-            if (intent.action.equals(Constants.UPDATE_STATE_ACTION)) {
-                if (state != null) {
-                    recyclerAdapter.updateItemState(position, ItemStatus.valueOf(state))
-                }
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        downloadReceiver.setButtonStateCallback(object : ReceiveDataInerface {
-            override fun onReCeiveData(position: Int, state: ItemStatus) {
-                recyclerAdapter.updateItemState(position, state)
-            }
-        })
-        recyclerAdapter.downloadImgCallback(object : OnDownloadImageInterface {
-            @SuppressLint("NotifyDataSetChanged")
-            override fun onDownloadImage(photo: Photo, position: Int) {
-                val downloadServiceIntent= Intent(this@MainActivity, DownloadService::class.java)
-                downloadServiceIntent.putExtra(Constants.position, position)
-                downloadServiceIntent.putExtra(Constants.photo, photo)
-                ContextCompat.startForegroundService(this@MainActivity, downloadServiceIntent)
-            }
-        })
         registerBroadcasts()
         setupRecyclerAdapter()
+        downloadReceiver.onDownloadCompleteCallback = { position, state ->
+            recyclerAdapter.updateItemState(position, state)
+        }
     }
 
     private fun registerBroadcasts() {
-        val downloadCompleteIntentFilter = IntentFilter(Constants.DOWNLOAD_COMPLETE_ACTION)
+        val downloadCompleteIntentFilter = IntentFilter(Constants.UPDATE_STATE_ACTION)
         registerReceiver(downloadReceiver, downloadCompleteIntentFilter)
     }
 
@@ -108,57 +77,16 @@ class MainActivity : AppCompatActivity(), java.io.Serializable {
                     .commit()
             }
         })
-//        recyclerAdapter.downloadImgCallback(object : OnDownloadImageInterface {
-//            @SuppressLint("NotifyDataSetChanged")
-//            override fun onDownloadImage(photo: Photo, position: Int) {
-//                // run service
-////                val downloadServiceIntent = Intent(this@MainActivity, DownloadService::class.java)
-////                ContextCompat.startForegroundService(this@MainActivity, intent)
-////                println("SERVICE HAS STARTED")
-////                bindService(downloadServiceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
-////                println("SERVICE HAS BINDED")
-//
-//                val downloadServiceIntent= Intent(this@MainActivity, DownloadService::class.java)
-//                downloadServiceIntent.putExtra(Constants.shared.position, position)
-//                downloadServiceIntent.putExtra(Constants.shared.photo, photo)
-//                ContextCompat.startForegroundService(this@MainActivity, intent)
-//
-////                downloadService?.setState(position, ItemStatus.IN_QUEUE)
-////                Log.d("IN_QUEUE:", "$position, Thread: ${currentThread().name}")
-//
-////                downloadService?.startBroadcast(position, photo.state, photo.id.toInt())
-////                downloadService?.executionTask(position, photo)
-//
-////                downloadImageTask = Runnable {
-////                    downloadService?.setState(position, ItemStatus.IN_PROGRESS)
-////                    Log.d("IN_PROGRESS:", "$position, Thread: ${currentThread().name}")
-////
-////                    Thread.sleep(5000)
-////
-////                    val usrArr: ArrayList<String> = ArrayList()
-////                    usrArr.add(photo.src.original)
-////                    usrArr.add(photo.src.large2X)
-////                    usrArr.add(photo.src.large)
-////                    usrArr.add(photo.src.medium)
-////                    usrArr.add(photo.src.small)
-////                    usrArr.add(photo.src.portrait)
-////                    usrArr.add(photo.src.landscape)
-////                    usrArr.add(photo.src.tiny)
-////
-////                    for ((index, i) in (0 until usrArr.size).withIndex()) {
-////                        val url = usrArr[index]
-////                        downloadService?.startDownloading(
-////                            photo.photographer.toString() + photo.id,
-////                            url
-////                        )
-////                    }
-//////                    downloadReceiver.onDownloadComplete = { position, state ->
-//////                        downloadService?.setState(position, state)
-//////                    }
-////                }
-////                executorService.submit(downloadImageTask)
-//            }
-//        })
+        recyclerAdapter.downloadImgCallback(object : OnDownloadImageInterface {
+            @SuppressLint("NotifyDataSetChanged")
+            override fun onDownloadImage(photo: Photo, position: Int) {
+                val downloadServiceIntent= Intent(this@MainActivity, DownloadService::class.java)
+                downloadServiceIntent.putExtra(Constants.position, position)
+                downloadServiceIntent.putExtra(Constants.photo, photo)
+                Log.d("onDownloadImage() DATA:", "POSITION: $position, PHOTO: $photo")
+                startService(downloadServiceIntent)
+            }
+        })
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -246,7 +174,7 @@ class MainActivity : AppCompatActivity(), java.io.Serializable {
         Log.e("MainActivity", "${currentThread().name}, ${currentThread().state}")
         super.onDestroy()
         unregisterReceiver(downloadReceiver)
-        unregisterReceiver(statusReceiver)
+//        unregisterReceiver(statusReceiver)
     }
 
     private val serviceConnection = object : ServiceConnection {
