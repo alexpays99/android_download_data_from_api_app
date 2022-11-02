@@ -16,8 +16,8 @@ class DownloadBroadcastReceiver : BroadcastReceiver() {
         val state = intent.extras?.getString(Constants.state)
         Log.d("onReceive() STATE:", "STATE: $state")
 
-        if (state != null) {
-            onDownloadCompleteCallback?.invoke(position!!, ItemStatus.valueOf(state))
+        if (state != null && position != null) {
+            onDownloadCompleteCallback?.invoke(position, ItemStatus.valueOf(state))
             Log.d("BROADCAST STATE:", "STATE: $state, ItemStatus.valueOf(state): $state")
         }
     }

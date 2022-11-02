@@ -10,6 +10,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.View
 import android.view.View.GONE
+import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -26,7 +27,6 @@ import com.example.android_download_data_from_api.models.User
 import com.example.android_download_data_from_api.services.DownloadBroadcastReceiver
 import com.example.android_download_data_from_api.services.DownloadService
 import com.example.android_download_data_from_api.ui.fragments.UserImagesFragment
-import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -40,11 +40,14 @@ class MainActivity : AppCompatActivity(), java.io.Serializable {
     private val downloadReceiver = DownloadBroadcastReceiver()
     private var downloadService: DownloadService? = null
     private var isRunning: Boolean = false
+    private lateinit var progressTwo: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        progressTwo = findViewById(R.id.progress_two)
 
         registerBroadcasts()
         setupRecyclerAdapter()
@@ -80,7 +83,7 @@ class MainActivity : AppCompatActivity(), java.io.Serializable {
         recyclerAdapter.downloadImgCallback(object : OnDownloadImageInterface {
             @SuppressLint("NotifyDataSetChanged")
             override fun onDownloadImage(photo: Photo, position: Int) {
-                val downloadServiceIntent= Intent(this@MainActivity, DownloadService::class.java)
+                val downloadServiceIntent = Intent(this@MainActivity, DownloadService::class.java)
                 downloadServiceIntent.putExtra(Constants.position, position)
                 downloadServiceIntent.putExtra(Constants.photo, photo)
                 Log.d("onDownloadImage() DATA:", "POSITION: $position, PHOTO: $photo")
@@ -99,7 +102,7 @@ class MainActivity : AppCompatActivity(), java.io.Serializable {
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
             android.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
-                progress_two.visibility = View.VISIBLE
+                progressTwo.visibility = View.VISIBLE
                 makeRequest(query)
                 return true
             }
@@ -115,45 +118,50 @@ class MainActivity : AppCompatActivity(), java.io.Serializable {
     private fun makeRequest(query: String) {
         val retrofitService = Common.retrofitService
         Log.d("***doInBackground: ", "retrofitService init")
-        retrofitService.getUsers(query).enqueue(object : Callback<User> {
-            @SuppressLint("NotifyDataSetChanged")
-            override fun onResponse(call: Call<User>, response: Response<User>) {
-                if (response.isSuccessful) {
-                    Log.e("RESPONSE: ", "response.isSuccessful")
-                    try {
-                        val handler = Handler(Looper.getMainLooper())
-                        handler.post {
-                            val resp = response.body()
-                            resp?.photos?.forEach { photo ->
-                                val path =
-                                    "/storage/emulated/0/Download/${photo.photographer}${photo.id}"
-                                if (File(path).exists()) {
-                                    photo.state = ItemStatus.DOWNLOADED
-                                } else {
-                                    photo.state = ItemStatus.DEFAULT
+        if (retrofitService != null) {
+            retrofitService.getUsers(query).enqueue(object : Callback<User> {
+                @SuppressLint("NotifyDataSetChanged")
+                override fun onResponse(call: Call<User>, response: Response<User>) {
+                    if (response.isSuccessful) {
+                        Log.e("RESPONSE: ", "response.isSuccessful")
+                        try {
+                            val handler = Handler(Looper.getMainLooper())
+                            handler.post {
+                                val resp = response.body()
+                                resp?.photos?.forEach { photo ->
+                                    val path =
+                                        "/storage/emulated/0/Download/${photo.photographer}${photo.id}"
+                                    if (File(path).exists()) {
+                                        photo.state = ItemStatus.DOWNLOADED
+                                    } else {
+                                        photo.state = ItemStatus.DEFAULT
+                                    }
                                 }
                             }
+                            val photo = response.body()?.photos
+                            if (photo != null) {
+                                userList.addAll(photo)
+                            }
+                            Log.e("USERLIST RESUL:", userList.toString())
+                            recyclerAdapter.notifyDataSetChanged()
+                            runOnUiThread { progressTwo.visibility = GONE }
+                            Log.e("RETROFIT RESUL: ", userList.toString())
+                        } catch (e: Error) {
+                            Log.e("****onResponse", e.toString())
                         }
-                        userList.addAll(response.body()!!.photos)
-                        Log.e("USERLIST RESUL:", userList.toString())
-                        recyclerAdapter.notifyDataSetChanged()
-                        runOnUiThread { progress_two.visibility = GONE }
-                        Log.e("RETROFIT RESUL: ", userList.toString())
-                    } catch (e: Error) {
-                        Log.e("****onResponse", e.toString())
+                        Log.d(
+                            "****onResponse()",
+                            currentThread().name + ", " + userList.toString()
+                        )
                     }
-                    Log.d(
-                        "****onResponse()",
-                        currentThread().name + ", " + userList.toString()
-                    )
                 }
-            }
 
-            override fun onFailure(call: Call<User>, t: Throwable) {
-                progress_two.visibility = GONE
-                Log.e("****onFailure", t.toString())
-            }
-        })
+                override fun onFailure(call: Call<User>, t: Throwable) {
+                    progressTwo.visibility = GONE
+                    Log.e("****onFailure", t.toString())
+                }
+            })
+        }
     }
 
     override fun onStart() {

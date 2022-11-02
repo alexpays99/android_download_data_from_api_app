@@ -55,13 +55,13 @@ class DownloadService : Service() {
                 map.forEach { (key, value) ->
                     setState(
                         value.position,
-                        value.photo.state!!,
+                        value.photo.state,
                         value.photo.id.toInt()
                     )
                     // ok
                     Log.d(
                         "map.forEach DATA:",
-                        "POSITION: ${value.position}, STATE: ${value.photo.state!!}, ID: ${value.photo.id}"
+                        "POSITION: ${value.position}, STATE: ${value.photo.state}, ID: ${value.photo.id}"
                     )
                 }
                 Log.d("timer", timer.toString())
@@ -144,7 +144,7 @@ class DownloadService : Service() {
             val downloadUrl = Uri.parse(imageUrl)
             val request: DownloadManager.Request = DownloadManager.Request(downloadUrl)
 
-            map[photo.id.toInt()]!!.photo.state = ItemStatus.IN_PROGRESS
+            map[photo.id.toInt()]?.photo?.state = ItemStatus.IN_PROGRESS
 
             request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
                 .setAllowedOverRoaming(false)
@@ -162,7 +162,7 @@ class DownloadService : Service() {
             stopSelf()
         } catch (e: Exception) {
             Log.d("DOWNLOADING ERROR: ", "Downloading has been stopped, exception: $e")
-            map[photo.id.toInt()]!!.photo.state = ItemStatus.DEFAULT
+            map[photo.id.toInt()]?.photo?.state = ItemStatus.DEFAULT
             Handler(Looper.getMainLooper()).post {
                 timer.cancel()
                 stopSelf()

@@ -21,7 +21,7 @@ class RetrofitService {
     }
 
 
-    fun getClient(baseUrl: String): Retrofit {
+    fun getClient(baseUrl: String): Retrofit? {
         if (retrofit == null) {
             val client = OkHttpClient().newBuilder()
 
@@ -45,6 +45,6 @@ class RetrofitService {
                 .build()
         }
 
-        return retrofit!!
+        return retrofit
     }
 }

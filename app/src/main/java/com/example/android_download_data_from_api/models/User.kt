@@ -2,7 +2,7 @@ package com.example.android_download_data_from_api.models
 
 import com.google.gson.annotations.SerializedName
 
-data class User (
+data class User(
     val page: Long,
     @SerializedName("per_page")
     val perPage: Long,

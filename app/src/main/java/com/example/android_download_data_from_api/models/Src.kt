@@ -3,7 +3,7 @@ package com.example.android_download_data_from_api.models
 import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
-data class Src (
+data class Src(
     val original: String,
     @SerializedName("large2x")
     val large2X: String,

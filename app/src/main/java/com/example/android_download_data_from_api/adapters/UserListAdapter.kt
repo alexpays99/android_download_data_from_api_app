@@ -17,11 +17,12 @@ import com.example.android_download_data_from_api.interfaces.OnBindInterface
 import com.example.android_download_data_from_api.interfaces.OnDownloadImageInterface
 import com.example.android_download_data_from_api.models.Photo
 
-class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserListAdapter.ViewHolder>() {
+class UserListAdapter(var list: MutableList<Photo>) :
+    RecyclerView.Adapter<UserListAdapter.ViewHolder>() {
     private lateinit var cardViewCallback: OnBindInterface
     private lateinit var downloadImg: OnDownloadImageInterface
 
-    inner class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
+    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         var name: TextView
         var button: Button
         var cardView: CardView
@@ -55,7 +56,7 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val context = parent.context
         val inflater = LayoutInflater.from(context)
-        val view = inflater.inflate(R.layout.userdata_cell_layout,parent, false)
+        val view = inflater.inflate(R.layout.userdata_cell_layout, parent, false)
         return ViewHolder(view)
     }
 
@@ -65,7 +66,7 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
         holder.name.text = dataPosition.photographer
         holder.name.setTextColor(Color.parseColor(dataPosition.avgColor))
 
-        when(dataPosition.state) {
+        when (dataPosition.state) {
             ItemStatus.DEFAULT -> {
                 holder.button.text = "Download"
                 holder.button.setOnClickListener {

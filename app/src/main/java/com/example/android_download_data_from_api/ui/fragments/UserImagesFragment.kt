@@ -74,8 +74,9 @@ class UserImagesFragment : Fragment() {
                     Log.d("FETCHING FROM GALLERY:", "Error while fetching image, $e")
                 }
             } else {
-                val res = getResources().getDrawable(R.drawable.ic_launcher_background)
-                photoList.add(ImageFromPath(fullPath, res, fileName))
+//                val res = getResources().getDrawable(R.drawable.ic_launcher_background)
+                val res = context?.getDrawable(R.drawable.ic_launcher_background)
+                res?.let { ImageFromPath(fullPath, it, fileName) }?.let { photoList.add(it) }
             }
         }
     }

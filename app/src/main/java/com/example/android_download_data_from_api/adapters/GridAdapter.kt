@@ -12,11 +12,13 @@ import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.graphics.drawable.toDrawable
+import com.example.android_download_data_from_api.R
 import com.example.android_download_data_from_api.models.ImageFromPath
 import java.io.File
 import java.io.IOException
 
-open class GridAdapter(private var list: MutableList<ImageFromPath>, private var context: Context): BaseAdapter() {
+open class GridAdapter(private var list: MutableList<ImageFromPath>, private var context: Context) :
+    BaseAdapter() {
     private var layoutInflater: LayoutInflater? = null
     private lateinit var imageView: ImageView
     private lateinit var imageTitle: TextView
@@ -39,15 +41,18 @@ open class GridAdapter(private var list: MutableList<ImageFromPath>, private var
         var convertView = convertView
 
         if (layoutInflater == null) {
-            layoutInflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater?
+            layoutInflater =
+                context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater?
         }
 
         if (convertView == null) {
-            convertView = layoutInflater?.inflate(com.example.android_download_data_from_api.R.layout.grid_item_layout, null)
+            convertView = layoutInflater?.inflate(R.layout.grid_item_layout, null)
         }
 
-        imageView = convertView!!.findViewById(com.example.android_download_data_from_api.R.id.imageView)
-        imageTitle = convertView.findViewById(com.example.android_download_data_from_api.R.id.imageTitle)
+        if (convertView != null) {
+            imageView = convertView.findViewById(R.id.imageView)
+            imageTitle = convertView.findViewById(R.id.imageTitle)
+        }
 
         val imageFile = File(currentItem.imgPath)
         try {
@@ -69,7 +74,11 @@ open class GridAdapter(private var list: MutableList<ImageFromPath>, private var
         return convertView
     }
 
-    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+    private fun calculateInSampleSize(
+        options: BitmapFactory.Options,
+        reqWidth: Int,
+        reqHeight: Int
+    ): Int {
         val (height: Int, width: Int) = options.run { outHeight to outWidth }
         var inSampleSize = 1
         if (height > reqHeight || width > reqWidth) {
