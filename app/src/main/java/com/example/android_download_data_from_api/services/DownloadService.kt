@@ -10,10 +10,12 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.*
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.example.android_download_data_from_api.general.Constants
 import com.example.android_download_data_from_api.general.ItemStatus
 import com.example.android_download_data_from_api.models.DownloadStatus
 import com.example.android_download_data_from_api.models.Photo
+import com.example.android_download_data_from_api.ui.MainActivity
 import java.io.File
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -27,9 +29,6 @@ interface ReceiveDataInerface {
 }
 
 class DownloadBroadcastReceiver : BroadcastReceiver() {
-    //    var incrementCounterCallback: ((counter: Int) -> Unit)? = null
-//    var onDownloadComplete: ((position: Int, state: ItemStatus) -> Unit)? = null
-
     private lateinit var onDownloadCompleteCallback: ReceiveDataInerface
 
     fun setButtonStateCallback(callback: ReceiveDataInerface) {
@@ -37,8 +36,8 @@ class DownloadBroadcastReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context?, intent: Intent) {
-        val position = intent.extras!!.getInt(Constants.shared.position)
-        val state = intent.extras!!.getString(Constants.shared.state)
+        val position = intent.extras!!.getInt(Constants.position)
+        val state = intent.extras!!.getString(Constants.state)
 
         if (state != null) {
             onDownloadCompleteCallback.onReCeiveData(position, ItemStatus.valueOf(state))
@@ -66,8 +65,27 @@ class DownloadService : Service() {
         println("onCreate() method is called")
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         println("onStartCommand() method is called")
+        if (intent != null) {
+            val photo = intent.getSerializableExtra(Constants.photo)
+            val position = intent.getIntExtra(Constants.position, 0)
+            executionTask(position, photo as Photo)
+        }
+        Thread {
+            timer = Timer()
+            timer.schedule(0, 1000) {
+                map.forEach { (key, value) ->
+                    startBroadcast(
+                        value.position,
+                        value.photo.state,
+                        value.photo.id.toInt()
+                    )
+                }
+                Log.d("timer", timer.toString())
+            }
+        }.start()
         return START_STICKY
     }
 
@@ -79,19 +97,19 @@ class DownloadService : Service() {
     }
 
     fun setState(position: Int, state: ItemStatus) {
-        val intent = Intent(Constants.shared.UPDATE_STATE_ACTION)
+        val intent = Intent(Constants.UPDATE_STATE_ACTION)
         val bundle = Bundle()
-        bundle.putInt(Constants.shared.position, position)
-        bundle.putString(Constants.shared.state, state.toString())
+        bundle.putInt(Constants.position, position)
+        bundle.putString(Constants.state, state.toString())
         intent.putExtras(bundle)
         sendBroadcast(intent)
     }
 
     fun startBroadcast(position: Int, state: ItemStatus?, id: Int) {
-        val intent = Intent(Constants.shared.UPDATE_STATE_ACTION)
-        intent.putExtra(Constants.shared.state, state)
-        intent.putExtra(Constants.shared.position, position)
-        intent.putExtra(Constants.shared.photoId, id)
+        val intent = Intent(Constants.UPDATE_STATE_ACTION)
+        intent.putExtra(Constants.state, state)
+        intent.putExtra(Constants.position, position)
+        intent.putExtra(Constants.photoId, id)
         sendBroadcast(intent)
     }
 
@@ -118,8 +136,11 @@ class DownloadService : Service() {
             downloadCounter.decrementAndGet()
             map.remove(photo.id.toInt())
             startBroadcast(position, ItemStatus.DOWNLOADED, photo.id.toInt())
-            if(downloadCounter.get() == 0) {
-                stopSelf()
+            if (downloadCounter.get() == 0) {
+                Handler(Looper.getMainLooper()).post {
+                    timer.cancel()
+                    stopSelf()
+                }
             }
         }
         downloadCounter.incrementAndGet()

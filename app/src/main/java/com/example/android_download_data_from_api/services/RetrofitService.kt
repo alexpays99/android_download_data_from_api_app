@@ -24,7 +24,7 @@ object RetrofitService {
             client.addInterceptor(Interceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()
-                        .header("Authorization", Constants().API_KEY).build()
+                        .header("Authorization", Constants.API_KEY).build()
                 )
             })
 

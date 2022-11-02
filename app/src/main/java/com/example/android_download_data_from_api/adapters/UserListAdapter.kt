@@ -27,6 +27,7 @@ class UserListAdapter(var list: MutableList<Photo>): RecyclerView.Adapter<UserLi
         var cardView: CardView
 
         init {
+
             name = itemView.findViewById(R.id.userName)
             button = itemView.findViewById(R.id.downloadButton)
             cardView = itemView.findViewById(R.id.cardView)
