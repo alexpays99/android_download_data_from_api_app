@@ -5,5 +5,5 @@ import com.example.android_download_data_from_api.services.RetrofitService
 
 object Common {
     val retrofitService: RetrofitApiCallInterface
-        get() = RetrofitService.getClient(Constants.BASE_URL).create(RetrofitApiCallInterface::class.java)
+        get() = RetrofitService.getInstance().getClient(Constants.BASE_URL).create(RetrofitApiCallInterface::class.java)
 }

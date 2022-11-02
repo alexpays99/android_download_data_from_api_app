@@ -8,8 +8,18 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-object RetrofitService {
+class RetrofitService {
     private var retrofit: Retrofit? = null
+
+    companion object {
+        private var sInstance: RetrofitService? = null
+
+        fun getInstance(): RetrofitService {
+            if (sInstance == null) sInstance = RetrofitService()
+            return sInstance ?: throw IllegalStateException("")
+        }
+    }
+
 
     fun getClient(baseUrl: String): Retrofit {
         if (retrofit == null) {
